@@ -118,15 +118,15 @@
 
         /* Saved Meals Modal Styling */
         .saved-meal-list { margin-top: 15px; }
-        .saved-meal-list h4 { margin-top: 15px; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 3px; } /* NEW: Category headers */
-        .saved-meal-list ul { list-style-type: none; padding: 0; margin-left: 10px; } /* NEW */
+        .saved-meal-list h4 { margin-top: 15px; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 3px; } 
+        .saved-meal-list ul { list-style-type: none; padding: 0; margin-left: 10px; } 
 
         .saved-meal-item { 
             align-items: center; 
             padding-right: 0; 
-            border-bottom: 1px dotted #eee; /* Dotted line between items */
+            border-bottom: 1px dotted #eee; 
         }
-        .saved-meal-item:last-of-type { border-bottom: none; } /* No border on last item in category */
+        .saved-meal-item:last-of-type { border-bottom: none; } 
         .saved-meal-item .meal-name { flex-grow: 1; font-weight: bold; }
         .saved-meal-item .buttons { display: flex; gap: 5px; margin-left: 10px; }
         .saved-meal-item .delete-btn, .saved-meal-item .load-btn { 
@@ -170,18 +170,13 @@
 
 <div class="top-nav">
     <h2 style="margin:0">Mitch & Dee Weekly</h2>
-    <span id="user-status" style="font-size:0.8em; margin-left:10px;">Loading user...</span> <!-- NEW -->
-    <div style="display:flex; gap:10px">
-        <!-- ... existing buttons ... -->
-    </div>
-</div>
     <div style="display:flex; gap:10px">
         <button class="btn" style="background:white" onclick="openSummary()">Calendar View</button>
         <button class="btn" style="background:white; color:#1a73e8;" onclick="openManageFoods()">Manage Foods</button>
         <button class="btn" style="background:white; color:#34a853;" onclick="openSavedMeals()">Saved Meals</button>
         <button class="btn" style="background:white; color:#f9ab00;" onclick="generateAndDisplayGroceryList()">Grocery List</button> 
         <button class="btn" style="background:white; color:#7d7d7d;" onclick="openSettingsModal()">Settings</button> 
-        <button class="btn" style="background:#34a853; color:white" onclick="saveDataToLocalStorage()">Save Plan</button>
+        <button class="btn" style="background:#34a853; color:white" onclick="saveDataToFirestore()">Save Plan</button>
     </div>
 </div>
 
@@ -380,12 +375,6 @@
     </div>
 </div>
 
-<!-- Add these script tags BEFORE your existing <script> tag -->
-<!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script> <!-- For Authentication, which we'll use next -->
-
 <script>
     // Your Firebase configuration object goes here
     // PASTE THE firebaseConfig OBJECT YOU COPIED FROM THE FIREBASE CONSOLE HERE
@@ -402,12 +391,8 @@
     // Initialize Firebase
     const app = firebase.initializeApp(firebaseConfig);
     const db = app.firestore(); // Get a reference to the Firestore service
-    const auth = app.auth();    // Get a reference to the Auth service
 
-    // NEW: Global variable to store the current user's ID
-    let currentUserId = null; 
-    const userStatusElement = document.getElementById('user-status');
-
+    // Removed Firebase Auth and currentUserId variable
 
     // Initial food list - will be augmented by user-added foods
     let foodList = [
@@ -461,45 +446,28 @@
     let userSettings = { ...DEFAULT_USER_SETTINGS };
 
 
-    // MODIFIED: init() now handles authentication first
-    function init() {
-        if (userStatusElement) userStatusElement.innerText = 'Authenticating...';
+    // MODIFIED: init() now directly calls UI rendering and data loading
+    async function init() {
+        try {
+            // Load all data from Firestore
+            await loadFoodListFromFirestore(); 
+            await loadSavedMealsFromFirestore(); 
+            await loadUserSettingsFromFirestore(); 
+            
+            // Render UI based on loaded settings and data
+            renderPlannerUI(); 
+            await loadPlannerDataFromFirestore(); 
 
-        auth.onAuthStateChanged(async (user) => {
-            if (user) {
-                // User is signed in.
-                currentUserId = user.uid;
-                if (userStatusElement) userStatusElement.innerText = `Logged in as: ${currentUserId.substring(0, 8)}...`;
-                console.log("Authenticated user:", currentUserId);
-
-                // --- Now that we have a user, we can load everything ---
-                await loadFoodListFromFirestore(); // Placeholder, will implement next
-                await loadSavedMealsFromFirestore(); // Placeholder, will implement next
-                await loadUserSettingsFromFirestore(); // Placeholder, will implement next
-                
-                renderPlannerUI(); // NEW: Separate function for rendering the UI
-                await loadPlannerDataFromFirestore(); // Placeholder, will implement next
-
-                calculate(); 
-                updateRatiosDisplay(); 
-
-            } else {
-                // No user is signed in. Sign in anonymously.
-                if (userStatusElement) userStatusElement.innerText = 'Signing in anonymously...';
-                auth.signInAnonymously()
-                    .then(() => {
-                        // Signed in. onAuthStateChanged will be triggered again with the user object.
-                        console.log("Signed in anonymously.");
-                    })
-                    .catch((error) => {
-                        console.error("Error signing in anonymously:", error);
-                        if (userStatusElement) userStatusElement.innerText = `Auth Error: ${error.message}`;
-                    });
-            }
-        });
+            calculate(); 
+            updateRatiosDisplay(); 
+            alert("Planner loaded successfully!"); 
+        } catch (error) {
+            console.error("Error during initial data loading or UI rendering:", error);
+            alert(`Error loading planner data: ${error.message}. Please check Firestore rules and browser console.`); 
+        }
     }
 
-    // NEW: Function to render the main planner UI, now called after authentication
+    // Function to render the main planner UI
     function renderPlannerUI() {
         const mount = document.getElementById('planner-mount');
         mount.innerHTML = ""; 
@@ -965,222 +933,720 @@
         });
     }
 
-    // --- Data Persistence (Firestore Placeholder) ---
-    // These functions will replace the localStorage ones in the next step
-    async function loadFoodListFromFirestore() { console.log("Loading food list from Firestore (placeholder)..."); }
-    async function saveFoodListToFirestore() { console.log("Saving food list to Firestore (placeholder)..."); }
-    async function loadSavedMealsFromFirestore() { console.log("Loading saved meals from Firestore (placeholder)..."); }
-    async function saveSavedMealsToFirestore() { console.log("Saving saved meals to Firestore (placeholder)..."); }
-    async function loadUserSettingsFromFirestore() { console.log("Loading user settings from Firestore (placeholder)..."); }
-    async function saveUserSettingsToFirestore() { console.log("Saving user settings to Firestore (placeholder)..."); "); }
-    async function loadPlannerDataFromFirestore() { console.log("Loading planner data from Firestore (placeholder)..."); }
-    async function savePlannerDataToFirestore() { console.log("Saving planner data to Firestore (placeholder)..."); }
+    // --- Firestore Persistence Functions (NEWLY IMPLEMENTED) ---
 
-    // --- Local Storage Management for Planner Data (OLD - will be replaced) ---
-    const PLANNER_DATA_STORAGE_KEY = 'zone_planner_data'; 
-    function saveDataToLocalStorage() { 
-        if (!currentUserId) { console.warn("Not authenticated, cannot save to local storage."); return; } // ADDED CHECK
-        // Existing logic to save to localStorage
-        const data = [];
-        days.forEach(day => {
-            const dayData = { day, meals: [] };
-            meals.forEach(m => {
-                const mealRow = document.querySelector(`#day-${day} [data-meal-id="${m.id}"]`);
-                if (!mealRow) return;
+    // Firestore Document References (using fixed IDs as we don't have per-user data anymore)
+    const foodsDocRef = db.collection('settings').doc('foods');
+    const savedMealsDocRef = db.collection('settings').doc('savedMeals');
+    const userSettingsDocRef = db.collection('settings').doc('userSettings');
+    const plannerDataDocRef = db.collection('plannerData').doc('weeklyPlan'); // Store weekly plan in a single document
 
-                const mealData = {
-                    id: m.id,
-                    mBlocks: mealRow.querySelector('.in-m').value,
-                    dBlocks: mealRow.querySelector('.in-d').value,
-                    foodItems: [] 
-                };
 
-                mealRow.querySelectorAll('.food-item-row').forEach(itemRow => {
-                    const select = itemRow.querySelector('.food-select');
-                    const proportionInput = itemRow.querySelector('.proportion-input'); 
-                    if (select.value && proportionInput.value) {
-                        mealData.foodItems.push({
-                            cat: itemRow.dataset.cat, 
-                            foodJson: select.value, 
-                            proportion: parseFloat(proportionInput.value) 
-                        });
+    async function loadFoodListFromFirestore() { 
+        try {
+            const doc = await foodsDocRef.get();
+            if (doc.exists) {
+                const loadedCustomFoods = doc.data().customFoods || [];
+                // Merge loaded custom foods with hardcoded, avoiding duplicates
+                const hardcodedFoodIds = new Set(foodList.map(f => f.id));
+                const mergedList = [...foodList];
+                loadedCustomFoods.forEach(loadedF => {
+                    if (!hardcodedFoodIds.has(loadedF.id)) { 
+                        mergedList.push(loadedF);
                     }
                 });
-                dayData.meals.push(mealData);
-            });
-            data.push(dayData);
-        });
-        localStorage.setItem(PLANNER_DATA_STORAGE_KEY + currentUserId, JSON.stringify(data)); // Added currentUserId to key
-        alert("Plan Saved to Browser Storage!");
+                foodList = mergedList;
+                nextFoodId = foodList.length > 0 ? Math.max(...foodList.map(f => parseInt(f.id.substring(1)))) + 1 : 1;
+                console.log("Food list loaded from Firestore.");
+            } else {
+                console.log("No custom food list found in Firestore. Using defaults.");
+                await saveFoodListToFirestore(); // Save initial hardcoded list to Firestore
+            }
+        } catch (error) {
+            console.error("Error loading food list from Firestore:", error);
+            alert("Error loading food list. Check console for details.");
+        }
     }
 
-    function loadDataFromLocalStorage() { 
-        if (!currentUserId) { console.warn("Not authenticated, cannot load from local storage."); return; } // ADDED CHECK
-        const raw = localStorage.getItem(PLANNER_DATA_STORAGE_KEY + currentUserId); // Added currentUserId to key
-        if(!raw) return;
-        const data = JSON.parse(raw);
-        data.forEach(d => {
-            d.meals.forEach(m => {
-                const mealRow = document.querySelector(`#day-${d.day} [data-meal-id="${m.id}"]`);
-                if (!mealRow) return;
+    async function saveFoodListToFirestore() { 
+        try {
+            // Only save custom foods (exclude hardcoded ones)
+            const customFoodsToSave = foodList.filter(f => !['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11'].includes(f.id));
+            await foodsDocRef.set({ customFoods: customFoodsToSave });
+            console.log("Food list saved to Firestore.");
+        } catch (error) {
+            console.error("Error saving food list to Firestore:", error);
+            alert("Error saving food list. Check console for details.");
+        }
+    }
 
-                mealRow.querySelector('.in-m').value = m.mBlocks;
-                mealRow.querySelector('.in-d').value = m.dBlocks;
+    async function loadSavedMealsFromFirestore() { 
+        try {
+            const doc = await savedMealsDocRef.get();
+            if (doc.exists) {
+                savedMeals = doc.data().meals || [];
+                nextSavedMealId = savedMeals.length > 0 ? Math.max(...savedMeals.map(m => parseInt(m.id.substring(2)))) + 1 : 1;
+                console.log("Saved meals loaded from Firestore.");
+            } else {
+                console.log("No saved meals found in Firestore.");
+            }
+        } catch (error) {
+            console.error("Error loading saved meals from Firestore:", error);
+            alert("Error loading saved meals. Check console for details.");
+        }
+    }
+
+    async function saveSavedMealsToFirestore() { 
+        try {
+            await savedMealsDocRef.set({ meals: savedMeals });
+            console.log("Saved meals saved to Firestore.");
+        } catch (error) {
+            console.error("Error saving saved meals to Firestore:", error);
+            alert("Error saving saved meals. Check console for details.");
+        }
+    }
+
+    async function loadUserSettingsFromFirestore() { 
+        try {
+            const doc = await userSettingsDocRef.get();
+            if (doc.exists) {
+                const loadedSettings = doc.data();
+                userSettings = { ...userSettings, ...loadedSettings };
+                // Ensure mealDefaultBlocks are present and correctly structured after loading
+                userSettings.mealDefaultBlocks = meals.map(m => {
+                    const loaded = loadedSettings.mealDefaultBlocks ? loadedSettings.mealDefaultBlocks.find(item => item.id === m.id) : null;
+                    const defaultVal = DEFAULT_USER_SETTINGS.mealDefaultBlocks.find(item => item.id === m.id) || { m: 0, d: 0 }; 
+                    return { id: m.id, name: m.name, m: loaded?.m ?? defaultVal.m, d: loaded?.d ?? defaultVal.d };
+                });
+                console.log("User settings loaded from Firestore.");
+            } else {
+                console.log("No user settings found in Firestore. Using defaults.");
+                await saveUserSettingsToFirestore(); // Save initial defaults to Firestore
+            }
+        } catch (error) {
+            console.error("Error loading user settings from Firestore:", error);
+            alert("Error loading user settings. Check console for details.");
+        }
+    }
+
+    async function saveUserSettingsToFirestore() { 
+        try {
+            await userSettingsDocRef.set(userSettings);
+            console.log("User settings saved to Firestore.");
+        } catch (error) {
+            console.error("Error saving user settings to Firestore:", error);
+            alert("Error saving user settings. Check console for details.");
+        }
+    }
+
+    async function loadPlannerDataFromFirestore() { 
+        try {
+            const doc = await plannerDataDocRef.get();
+            if (doc.exists) {
+                const data = doc.data().plan || [];
+                data.forEach(d => {
+                    d.meals.forEach(m => {
+                        const mealRow = document.querySelector(`#day-${d.day} [data-meal-id="${m.id}"]`);
+                        if (!mealRow) return;
+
+                        mealRow.querySelector('.in-m').value = m.mBlocks;
+                        mealRow.querySelector('.in-d').value = m.dBlocks;
+
+                        mealRow.querySelectorAll('.food-items-container').forEach(container => {
+                            container.innerHTML = ''; 
+                        });
+
+                        m.foodItems.forEach(item => {
+                            const container = mealRow.querySelector(`.${item.cat}-foods`);
+                            if (container) {
+                                addFoodItem(container, item.cat, item.foodJson, item.proportion, false); 
+                            }
+                        });
+                    });
+                });
+                console.log("Planner data loaded from Firestore.");
+            } else {
+                console.log("No planner data found in Firestore.");
+            }
+        } catch (error) {
+            console.error("Error loading planner data from Firestore:", error);
+            alert("Error loading planner data. Check console for details.");
+        }
+    }
+
+    async function saveDataToFirestore() { // Renamed from saveDataToLocalStorage
+        try {
+            const data = [];
+            days.forEach(day => {
+                const dayData = { day, meals: [] };
+                meals.forEach(m => {
+                    const mealRow = document.querySelector(`#day-${day} [data-meal-id="${m.id}"]`);
+                    if (!mealRow) return;
+
+                    const mealData = {
+                        id: m.id,
+                        mBlocks: mealRow.querySelector('.in-m').value,
+                        dBlocks: mealRow.querySelector('.in-d').value,
+                        foodItems: [] 
+                    };
+
+                    mealRow.querySelectorAll('.food-item-row').forEach(itemRow => {
+                        const select = itemRow.querySelector('.food-select');
+                        const proportionInput = itemRow.querySelector('.proportion-input'); 
+                        if (select.value && proportionInput.value) {
+                            mealData.foodItems.push({
+                                cat: itemRow.dataset.cat, 
+                                foodJson: select.value, 
+                                proportion: parseFloat(proportionInput.value) 
+                            });
+                        }
+                    });
+                    dayData.meals.push(mealData);
+                });
+                data.push(dayData);
+            });
+            await plannerDataDocRef.set({ plan: data });
+            alert("Plan Saved to Firestore!");
+            console.log("Planner data saved to Firestore.");
+        } catch (error) {
+            console.error("Error saving planner data to Firestore:", error);
+            alert("Error saving planner data. Check console for details.");
+        }
+    }
+
+
+    function saveCurrentMeal(day, mealId) {
+        const mealRow = document.querySelector(`#day-${day} [data-meal-id="${mealId}"]`);
+        if (!mealRow) { console.error("Meal row not found for saving:", day, mealId); return; }
+
+        const mealFoodsData = [];
+        mealRow.querySelectorAll('.food-item-row').forEach(itemRow => {
+            const select = itemRow.querySelector('.food-select');
+            const proportionInput = itemRow.querySelector('.proportion-input');
+            if (select.value && proportionInput.value) {
+                mealFoodsData.push({
+                    cat: itemRow.dataset.cat, 
+                    foodJson: select.value, 
+                    proportion: parseFloat(proportionInput.value) 
+                });
+            }
+        });
+
+        if (mealFoodsData.length === 0) {
+            alert("No food items selected for this meal to save.");
+            return;
+        }
+
+        let mealName = prompt("Enter a name for this saved meal:", "My " + meals.find(m => m.id === mealId).name + " Recipe");
+        if (!mealName) return; 
+
+        const newSavedMeal = {
+            id: `sm${nextSavedMealId++}`,
+            name: mealName,
+            foodItems: mealFoodsData,
+            mealType: mealId 
+        };
+
+        savedMeals.push(newSavedMeal);
+        saveSavedMealsToFirestore(); // Now calls Firestore save
+        alert(`Meal "${mealName}" saved successfully!`);
+    }
+
+    function deleteSavedMeal(id) {
+        if (confirm('Are you sure you want to delete this saved meal?')) {
+            savedMeals = savedMeals.filter(m => m.id !== id);
+            saveSavedMealsToFirestore(); // Now calls Firestore save
+            renderSavedMealsList();
+        }
+    }
+
+    function openAddFoodModal() {
+        document.getElementById('new-food-name').value = '';
+        document.getElementById('new-food-category').value = 'protein';
+        document.getElementById('new-food-grocery-category').value = 'Other'; 
+        document.getElementById('new-food-per-block').value = '1.0';
+        document.getElementById('new-food-unit').value = '';
+        document.getElementById('modal-add-food').style.display = 'flex';
+    }
+
+    function closeAddFoodModal() {
+        document.getElementById('modal-add-food').style.display = 'none';
+    }
+
+    async function addNewFood() { // Made async
+        const name = document.getElementById('new-food-name').value.trim();
+        const category = document.getElementById('new-food-category').value;
+        const groceryCategory = document.getElementById('new-food-grocery-category').value;
+        const perBlock = parseFloat(document.getElementById('new-food-per-block').value);
+        const unit = document.getElementById('new-food-unit').value.trim();
+
+        if (!name || isNaN(perBlock) || perBlock <= 0 || !unit || !groceryCategory) {
+            alert('Please fill in all food details correctly.');
+            return;
+        }
+
+        const newFood = {
+            id: `f${nextFoodId++}`, 
+            name,
+            category,
+            groceryCategory, 
+            perBlock,
+            unit
+        };
+
+        foodList.push(newFood);
+        await saveFoodListToFirestore(); // Now calls Firestore save
+        renderFoodListManagement(); 
+        populateAllDropdowns();     
+        closeAddFoodModal();
+        alert('Food added successfully!');
+    }
+
+    async function deleteFood(id) { // Made async
+        if (confirm('Are you sure you want to delete this food item?')) {
+            foodList = foodList.filter(f => f.id !== id);
+            await saveFoodListToFirestore(); // Now calls Firestore save
+            renderFoodListManagement();   
+            populateAllDropdowns();       
+            calculate();                  
+        }
+    }
+
+    async function saveSettings() { // Made async
+        const newMitchTotal = parseFloat(document.getElementById('setting-mitch-total-daily-blocks').value);
+        const newDeeTotal = parseFloat(document.getElementById('setting-dee-total-daily-blocks').value);
+
+        if (isNaN(newMitchTotal) || newMitchTotal <= 0 || isNaN(newDeeTotal) || newDeeTotal <= 0) {
+            alert("Please enter valid positive numbers for total daily blocks.");
+            return;
+        }
+
+        userSettings.mitchTotalDailyBlocks = newMitchTotal;
+        userSettings.deeTotalDailyBlocks = newDeeTotal;
+
+        userSettings.mealDefaultBlocks.forEach(mealSetting => {
+            const mitchInput = document.querySelector(`#settings-meal-defaults input[data-meal-id="${mealSetting.id}"][data-person="mitch"]`);
+            const deeInput = document.querySelector(`#settings-meal-defaults input[data-meal-id="${mealSetting.id}"][data-person="dee"]`);
+            
+            if (mitchInput) mealSetting.m = parseFloat(mitchInput.value) || 0;
+            if (deeInput) mealSetting.d = parseFloat(deeInput.value) || 0;
+        });
+
+        await saveUserSettingsToFirestore(); // Now calls Firestore save
+        calculate(); 
+        updateRatiosDisplay(); 
+        alert("Settings saved!");
+        closeModals();
+    }
+
+    function updateRatiosDisplay() { 
+        const ratiosDisplayElement = document.getElementById('ratios-display');
+        if (!ratiosDisplayElement) return;
+
+        const mitchRatios = [];
+        const deeRatios = [];
+
+        userSettings.mealDefaultBlocks.forEach(meal => {
+            mitchRatios.push(meal.m);
+            deeRatios.push(meal.d);
+        });
+
+        ratiosDisplayElement.innerText = `Mitch: ${mitchRatios.join('/')} | Dee: ${deeRatios.join('/')}`;
+    }
+
+    function applySettingsToPlanner() {
+        days.forEach(day => {
+            meals.forEach(m => {
+                const mealRow = document.querySelector(`#day-${day} [data-meal-id="${m.id}"]`);
+                if (mealRow) {
+                    const defaultBlocks = userSettings.mealDefaultBlocks.find(item => item.id === m.id) || { m: 0, d: 0 };
+                    mealRow.querySelector('.in-m').value = defaultBlocks.m;
+                    mealRow.querySelector('.in-d').value = defaultBlocks.d;
+                }
+            });
+        });
+        calculate(); 
+        alert("Default meal blocks applied to all days in the planner.");
+        closeModals();
+    }
+
+
+    function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
+
+    // --- Other functions (unchanged) ---
+    function renderFoodListManagement() { 
+        const listContainer = document.getElementById('food-management-list');
+        listContainer.innerHTML = '';
+        foodList.forEach(food => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'food-management-item';
+            itemDiv.innerHTML = `
+                <div class="details">
+                    <div class="name">${food.name}</div>
+                    <div class="category">${food.category} (${food.groceryCategory || 'N/A'})</div>
+                    <div class="per-block">${food.perBlock}${food.unit} per block</div>
+                </div>
+                <button class="delete-btn" onclick="deleteFood('${food.id}')">Delete</button>
+            `;
+            listContainer.appendChild(itemDiv);
+        });
+    }
+    function openManageFoods() {
+        renderFoodListManagement();
+        document.getElementById('modal-manage-foods').style.display = 'flex';
+    }
+    function openSavedMeals() {
+        renderSavedMealsList();
+        document.getElementById('modal-saved-meals').style.display = 'flex';
+    }
+    function renderSavedMealsList() {
+        const listContainer = document.getElementById('saved-meal-list');
+        listContainer.innerHTML = '';
+        if (savedMeals.length === 0) {
+            listContainer.innerHTML = '<p style="text-align: center; color: #666;">No saved meals yet.</p>';
+            return;
+        }
+
+        const mealTypeOrder = ['brk', 'sn1', 'sn2', 'lun', 'din']; 
+        const mealTypeNames = {
+            'brk': 'Breakfast',
+            'sn1': 'Snacks', 
+            'sn2': 'Snacks',
+            'lun': 'Lunch',
+            'din': 'Dinner'
+        };
+
+        const groupedMeals = {};
+        savedMeals.forEach(meal => {
+            const displayType = mealTypeNames[meal.mealType] || 'Other';
+            if (!groupedMeals[displayType]) {
+                groupedMeals[displayType] = [];
+            }
+            groupedMeals[displayType].push(meal);
+        });
+
+        mealTypeOrder.forEach(mealId => {
+            const displayType = mealTypeNames[mealId];
+            if (groupedMeals[displayType] && groupedMeals[displayType].length > 0) {
+                const categoryHeader = document.createElement('h4');
+                categoryHeader.textContent = `${displayType} Meals`;
+                listContainer.appendChild(categoryHeader);
+
+                const ul = document.createElement('ul');
+                groupedMeals[displayType].sort((a,b) => a.name.localeCompare(b.name)).forEach(meal => {
+                    const itemDiv = document.createElement('li');
+                    itemDiv.className = 'saved-meal-item';
+                    itemDiv.innerHTML = `
+                        <div class="meal-name">${meal.name}</div>
+                        <div class="buttons">
+                            <button class="load-btn" onclick="openLoadSavedMealModal('${meal.id}')">Load</button>
+                            <button class="delete-btn" onclick="deleteSavedMeal('${meal.id}')">Delete</button>
+                        </div>
+                    `;
+                    ul.appendChild(itemDiv);
+                });
+                listContainer.appendChild(ul);
+                if (mealId === 'sn1') groupedMeals['Snacks'] = []; 
+            }
+        });
+    }
+
+    function openLoadSavedMealModal(savedMealId) {
+        selectedSavedMealForLoad = savedMeals.find(m => m.id === savedMealId);
+        if (!selectedSavedMealForLoad) {
+            alert("Error: Saved meal not found.");
+            return;
+        }
+        document.getElementById('load-meal-title').innerText = `Load: ${selectedSavedMealForLoad.name}`;
+        document.querySelectorAll('#load-meals-assign input[type="checkbox"]').forEach(cb => cb.checked = false);
+        document.querySelectorAll('#load-days-assign input[type="checkbox"]').forEach(cb => cb.checked = false);
+        
+        document.getElementById('modal-saved-meals').style.display = 'none'; 
+        document.getElementById('modal-load-saved-meal').style.display = 'flex'; 
+    }
+
+    function applySavedMeal() {
+        if (!selectedSavedMealForLoad) {
+            console.error("No saved meal selected for loading."); 
+            return;
+        }
+
+        const mealIds = Array.from(document.querySelectorAll('#load-meals-assign input:checked')).map(i => i.value);
+        const dayIds = Array.from(document.querySelectorAll('#load-days-assign input:checked')).map(i => i.value);
+
+        if (mealIds.length === 0 || dayIds.length === 0) {
+            alert("Please select at least one meal and one day to load the saved meal.");
+            return;
+        }
+
+        dayIds.forEach(day => {
+            mealIds.forEach(mealId => {
+                const mealRow = document.querySelector(`#day-${day} [data-meal-id="${mealId}"]`);
+                if (!mealRow) {
+                    console.error("Meal row not found for:", day, mealId); 
+                    return;
+                }
 
                 mealRow.querySelectorAll('.food-items-container').forEach(container => {
                     container.innerHTML = ''; 
                 });
 
-                m.foodItems.forEach(item => {
+                selectedSavedMealForLoad.foodItems.forEach(item => {
                     const container = mealRow.querySelector(`.${item.cat}-foods`);
                     if (container) {
                         addFoodItem(container, item.cat, item.foodJson, item.proportion, false); 
+                    } else {
+                        console.error("Food container not found for category:", item.cat, "in meal:", day, mealId); 
                     }
                 });
             });
         });
+        calculate(); 
+        closeModals(); 
+        selectedSavedMealForLoad = null; 
+        alert("Saved meal applied successfully!");
     }
 
-    // --- Food Management Functions (OLD - will be replaced) ---
-    const FOOD_LIST_STORAGE_KEY = 'zone_food_list';
-    function loadFoodListFromLocalStorage() {
-        if (!currentUserId) { console.warn("Not authenticated, cannot load food list."); return; } // ADDED CHECK
-        const storedFoodList = localStorage.getItem(FOOD_LIST_STORAGE_KEY + currentUserId); // Added currentUserId to key
-        if (storedFoodList) {
-            const loadedFoods = JSON.parse(storedFoodList);
-            const hardcodedFoodIds = new Set(foodList.map(f => f.id));
-            const mergedList = [...foodList];
-            loadedFoods.forEach(loadedF => {
-                if (!hardcodedFoodIds.has(loadedF.id)) { 
-                    mergedList.push(loadedF);
+    function openCopyDayModal(sourceDay) {
+        currentDayToCopy = sourceDay;
+        document.getElementById('copy-day-title').innerText = `Copy ${sourceDay}'s Plan`;
+        
+        document.querySelectorAll('#copy-days-target input[type="checkbox"]').forEach(cb => {
+            cb.checked = (cb.value === sourceDay) ? false : true; 
+        });
+
+        document.getElementById('modal-copy-day').style.display = 'flex';
+    }
+
+    function executeCopyDay() {
+        if (!currentDayToCopy) {
+            console.error("No source day selected for copying.");
+            return;
+        }
+
+        const targetDays = Array.from(document.querySelectorAll('#copy-days-target input:checked')).map(i => i.value);
+        if (targetDays.length === 0) {
+            alert("Please select at least one day to copy the plan to.");
+            return;
+        }
+
+        const sourceDayMealsData = [];
+        meals.forEach(m => {
+            const mealRow = document.querySelector(`#day-${currentDayToCopy} [data-meal-id="${m.id}"]`);
+            if (!mealRow) {
+                console.warn(`Source meal row not found for ${currentDayToCopy}-${m.id}. Skipping.`);
+                return;
+            }
+
+            const mealData = {
+                id: m.id,
+                mBlocks: mealRow.querySelector('.in-m').value,
+                dBlocks: mealRow.querySelector('.in-d').value,
+                foodItems: []
+            };
+            mealRow.querySelectorAll('.food-item-row').forEach(itemRow => {
+                const select = itemRow.querySelector('.food-select');
+                const proportionInput = itemRow.querySelector('.proportion-input');
+                if (select.value && proportionInput.value) {
+                    mealData.foodItems.push({
+                        cat: itemRow.dataset.cat,
+                        foodJson: select.value,
+                        proportion: parseFloat(proportionInput.value)
+                    });
                 }
             });
-            foodList = mergedList;
-            nextFoodId = foodList.length > 0 ? Math.max(...foodList.map(f => parseInt(f.id.substring(1)))) + 1 : 1;
-        }
-    }
-    function saveFoodListToLocalStorage() {
-        if (!currentUserId) { console.warn("Not authenticated, cannot save food list."); return; } // ADDED CHECK
-        const customFoods = foodList.filter(f => !['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11'].includes(f.id));
-        localStorage.setItem(FOOD_LIST_STORAGE_KEY + currentUserId, JSON.stringify(customFoods)); // Added currentUserId to key
+            sourceDayMealsData.push(mealData);
+        });
+
+        targetDays.forEach(targetDay => {
+            meals.forEach(m => {
+                const targetMealRow = document.querySelector(`#day-${targetDay} [data-meal-id="${m.id}"]`);
+                const sourceMealData = sourceDayMealsData.find(s => s.id === m.id);
+
+                if (!targetMealRow || !sourceMealData) {
+                    console.warn(`Target meal row for ${targetDay}-${m.id} or source data not found. Skipping.`);
+                    return;
+                }
+
+                targetMealRow.querySelector('.in-m').value = sourceMealData.mBlocks;
+                targetMealRow.querySelector('.in-d').value = sourceMealData.dBlocks;
+
+                targetMealRow.querySelectorAll('.food-items-container').forEach(container => {
+                    container.innerHTML = ''; 
+                });
+
+                sourceMealData.foodItems.forEach(item => {
+                    const container = targetMealRow.querySelector(`.${item.cat}-foods`);
+                    if (container) {
+                        addFoodItem(container, item.cat, item.foodJson, item.proportion, false);
+                    }
+                });
+            });
+        });
+
+        calculate(); 
+        closeModals();
+        currentDayToCopy = null;
+        alert("Day plan copied successfully!");
     }
 
-    // --- Saved Meals Functions (OLD - will be replaced) ---
-    const SAVED_MEALS_STORAGE_KEY = 'zone_saved_meals';
-    function loadSavedMealsFromLocalStorage() {
-        if (!currentUserId) { console.warn("Not authenticated, cannot load saved meals."); return; } // ADDED CHECK
-        const storedSavedMeals = localStorage.getItem(SAVED_MEALS_STORAGE_KEY + currentUserId); // Added currentUserId to key
-        if (storedSavedMeals) {
-            savedMeals = JSON.parse(storedSavedMeals);
-            nextSavedMealId = savedMeals.length > 0 ? Math.max(...savedMeals.map(m => parseInt(m.id.substring(2)))) + 1 : 1;
-        }
-    }
-    function saveSavedMealsToLocalStorage() {
-        if (!currentUserId) { console.warn("Not authenticated, cannot save saved meals."); return; } // ADDED CHECK
-        localStorage.setItem(SAVED_MEALS_STORAGE_KEY + currentUserId, JSON.stringify(savedMeals)); // Added currentUserId to key
-    }
+    const GROCERY_CATEGORY_ORDER = [
+        "Meats & Seafood",
+        "Dairy & Eggs",
+        "Vegetables",
+        "Fruits",
+        "Grains & Baking",
+        "Grains & Legumes", 
+        "Nuts & Seeds",
+        "Oils & Condiments",
+        "Beverages",
+        "Snacks",
+        "Other"
+    ];
 
-    // --- User Settings Functions (OLD - will be replaced) ---
-    const ZONE_USER_SETTINGS_KEY = 'zone_user_settings';
-    function loadUserSettingsFromLocalStorage() {
-        if (!currentUserId) { console.warn("Not authenticated, cannot load user settings."); return; } // ADDED CHECK
-        const storedSettings = localStorage.getItem(ZONE_USER_SETTINGS_KEY + currentUserId); // Added currentUserId to key
-        if (storedSettings) {
-            const loadedSettings = JSON.parse(storedSettings);
-            userSettings = { ...userSettings, ...loadedSettings };
-            userSettings.mealDefaultBlocks = meals.map(m => {
-                const loaded = loadedSettings.mealDefaultBlocks ? loadedSettings.mealDefaultBlocks.find(item => item.id === m.id) : null;
-                const defaultVal = DEFAULT_USER_SETTINGS.mealDefaultBlocks.find(item => item.id === m.id) || { m: 0, d: 0 }; 
-                return { id: m.id, name: m.name, m: loaded?.m ?? defaultVal.m, d: loaded?.d ?? defaultVal.d };
+    function generateAndDisplayGroceryList() {
+        const groceryList = new Map(); 
+
+        days.forEach(day => {
+            meals.forEach(m => {
+                const mealRow = document.querySelector(`#day-${day} [data-meal-id="${m.id}"]`);
+                if (!mealRow) return;
+
+                const mitchTargetBlocksMeal = parseFloat(mealRow.querySelector('.in-m').value) || 0;
+                const deeTargetBlocksMeal = parseFloat(mealRow.querySelector('.in-d').value) || 0;
+
+                const mealFoods = { protein: [], carb: [], fat: [], combo: [] };
+
+                mealRow.querySelectorAll('.food-item-row').forEach(itemRow => {
+                    const select = itemRow.querySelector('.food-select');
+                    const proportionInput = itemRow.querySelector('.proportion-input');
+                    if (select.value && proportionInput.value) {
+                        try {
+                            const food = JSON.parse(select.value);
+                            const proportion = parseFloat(proportionInput.value);
+                            if (!isNaN(proportion) && proportion > 0) {
+                                mealFoods[food.category].push({ food, proportion });
+                            }
+                        } catch (e) {
+                            console.error("Error parsing food JSON for grocery list:", select.value, e);
+                        }
+                    }
+                });
+
+                const mitchAssignedBlocks = calculatePersonMealBlocks(mealFoods, mitchTargetBlocksMeal);
+                [mitchAssignedBlocks.distributedFoods.protein, 
+                 mitchAssignedBlocks.distributedFoods.carb, 
+                 mitchAssignedBlocks.distributedFoods.fat, 
+                 mitchAssignedBlocks.distributedFoods.combo].flat().forEach(item => {
+                    if (item.blocks > 0.05) { 
+                        const existing = groceryList.get(item.food.id);
+                        if (existing) {
+                            existing.totalBlocks += item.blocks;
+                        } else {
+                            groceryList.set(item.food.id, { food: item.food, totalBlocks: item.blocks });
+                        }
+                    }
+                });
+
+                const deeAssignedBlocks = calculatePersonMealBlocks(mealFoods, deeTargetBlocksMeal);
+                [deeAssignedBlocks.distributedFoods.protein, 
+                 deeAssignedBlocks.distributedFoods.carb, 
+                 deeAssignedBlocks.distributedFoods.fat, 
+                 deeAssignedBlocks.distributedFoods.combo].flat().forEach(item => {
+                    if (item.blocks > 0.05) { 
+                        const existing = groceryList.get(item.food.id);
+                        if (existing) {
+                            existing.totalBlocks += item.blocks;
+                        } else {
+                            groceryList.set(item.food.id, { food: item.food, totalBlocks: item.blocks });
+                        }
+                    }
+                });
+            });
+        });
+
+        const categorizedGroceryList = {};
+        groceryList.forEach(item => {
+            const category = item.food.groceryCategory || "Other";
+            if (!categorizedGroceryList[category]) {
+                categorizedGroceryList[category] = [];
+            }
+            categorizedGroceryList[category].push(item);
+        });
+
+        const groceryListOutput = document.getElementById('grocery-list-output');
+        groceryListOutput.innerHTML = ''; 
+
+        if (groceryList.size === 0) {
+            groceryListOutput.innerHTML = '<p style="text-align: center; color: #666;">No items planned for the week.</p>';
+        } else {
+            const sortedCategories = Object.keys(categorizedGroceryList).sort((a, b) => {
+                const indexA = GROCERY_CATEGORY_ORDER.indexOf(a);
+                const indexB = GROCERY_CATEGORY_ORDER.indexOf(b);
+                if (indexA === -1 && indexB === -1) return a.localeCompare(b); 
+                if (indexA === -1) return 1; 
+                if (indexB === -1) return -1;
+                return indexA - indexB;
+            });
+
+            sortedCategories.forEach(category => {
+                const categoryHeader = document.createElement('h4');
+                categoryHeader.textContent = category;
+                groceryListOutput.appendChild(categoryHeader);
+
+                const ul = document.createElement('ul');
+                categorizedGroceryList[category].sort((a, b) => a.food.name.localeCompare(b.food.name));
+
+                categorizedGroceryList[category].forEach(item => {
+                    const totalQuantity = (item.totalBlocks * item.food.perBlock).toFixed(1);
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${totalQuantity} ${item.food.unit} ${item.food.name}`;
+                    ul.appendChild(listItem);
+                });
+                groceryListOutput.appendChild(ul);
             });
         }
-    }
-    function saveUserSettingsToLocalStorage() {
-        if (!currentUserId) { console.warn("Not authenticated, cannot save user settings."); return; } // ADDED CHECK
-        localStorage.setItem(ZONE_USER_SETTINGS_KEY + currentUserId, JSON.stringify(userSettings)); // Added currentUserId to key
+        document.getElementById('modal-grocery-list').style.display = 'flex'; 
     }
 
-    // --- Remaining Functions (Unchanged for now, but will eventually call Firestore functions) ---
-    function saveCurrentMeal(day, mealId) {
-        // ... (existing logic) ...
-        saveSavedMealsToLocalStorage(); // Calls the localStorage version for now
+    const DEFAULT_USER_SETTINGS = {
+        mitchTotalDailyBlocks: 16,
+        deeTotalDailyBlocks: 10,
+        mealDefaultBlocks: [
+            { id: 'brk', name: 'Breakfast', m: 4, d: 2 },
+            { id: 'sn1', name: 'Snack 1', m: 2, d: 1 },
+            { id: 'lun', name: 'Lunch', m: 4, d: 3 },
+            { id: 'sn2', name: 'Snack 2', m: 2, d: 1 },
+            { id: 'din', name: 'Dinner', m: 4, d: 3 }
+        ]
+    };
+
+    function openSettingsModal() {
+        document.getElementById('setting-mitch-total-daily-blocks').value = userSettings.mitchTotalDailyBlocks;
+        document.getElementById('setting-dee-total-daily-blocks').value = userSettings.deeTotalDailyBlocks;
+
+        const mealDefaultsContainer = document.getElementById('settings-meal-defaults');
+        mealDefaultsContainer.innerHTML = ''; 
+
+        userSettings.mealDefaultBlocks.forEach(meal => { 
+            const mealRowDiv = document.createElement('div');
+            mealRowDiv.className = 'settings-meal-row';
+            mealRowDiv.innerHTML = `
+                <span>${meal.name}</span>
+                <div>
+                    Mitch: <input type="number" data-meal-id="${meal.id}" data-person="mitch" value="${meal.m}" min="0.5" step="0.5">
+                    Dee: <input type="number" data-meal-id="${meal.id}" data-person="dee" value="${meal.d}" min="0.5" step="0.5">
+                </div>
+            `;
+            mealDefaultsContainer.appendChild(mealRowDiv);
+        });
+
+        document.getElementById('modal-settings').style.display = 'flex';
     }
-    function deleteSavedMeal(id) {
-        // ... (existing logic) ...
-        saveSavedMealsToLocalStorage(); // Calls the localStorage version for now
-    }
-    function addNewFood() {
-        // ... (existing logic) ...
-        saveFoodListToLocalStorage(); // Calls the localStorage version for now
-    }
-    function deleteFood(id) {
-        // ... (existing logic) ...
-        saveFoodListToLocalStorage(); // Calls the localStorage version for now
-    }
-    function saveSettings() {
-        // ... (existing logic) ...
-        saveUserSettingsToLocalStorage(); // Calls the localStorage version for now
-    }
 
+    function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
 
-    // Other functions remain the same for now:
-    // - renderFoodCategorySection
-    // - populateAllDropdowns
-    // - openFoodLibrary
-    // - executeBulkApply
-    // - calculatePersonMealBlocks
-    // - getPortionHTML
-    // - updateBadge
-    // - openSummary, closeSummary, renderCalendar
-    // - openManageFoods, renderFoodListManagement, openAddFoodModal, closeAddFoodModal
-    // - openSavedMeals, renderSavedMealsList, openLoadSavedMealModal, applySavedMeal
-    // - openCopyDayModal, executeCopyDay
-    // - generateAndDisplayGroceryList
-    // - updateRatiosDisplay
-    // - applySettingsToPlanner
-    // - closeModals
-
-    // Make sure to add the 'currentUserId' to localStorage keys for isolation
-    // This is a temporary measure until we fully switch to Firestore
-
-    // --- Remaining functions (unchanged) ---
-    function renderFoodCategorySection(catCode, label) { /* ... */ return ``;}
-    function populateAllDropdowns() { /* ... */ }
-    function openFoodLibrary(category) { /* ... */ }
-    function executeBulkApply() { /* ... */ }
-    function calculatePersonMealBlocks(mealFoods, targetBlocks) { return {}; }
-    function getPortionHTML(distributedFoods) { return ''; }
-    function updateBadge(id, cur, tar) { /* ... */ }
-    function openSummary() { /* ... */ }
-    function closeSummary() { /* ... */ }
-    function renderCalendar(mode) { /* ... */ }
-    function renderFoodListManagement() { /* ... */ }
-    function openAddFoodModal() { /* ... */ }
-    function closeAddFoodModal() { /* ... */ }
-    function openSavedMeals() { /* ... */ }
-    function renderSavedMealsList() { /* ... */ }
-    function openLoadSavedMealModal(savedMealId) { /* ... */ }
-    function applySavedMeal() { /* ... */ }
-    function openCopyDayModal(sourceDay) { /* ... */ }
-    function executeCopyDay() { /* ... */ }
-    function generateAndDisplayGroceryList() { /* ... */ }
-    function updateRatiosDisplay() { /* ... */ }
-    function applySettingsToPlanner() { /* ... */ }
-    function closeModals() { /* ... */ }
-
-
-</script>
-<script>
-    // Make sure to wrap your main script content in an IIFE or similar
-    // to avoid global variable conflicts if not already done.
-    // For simplicity, let's just make sure init() is called once
-    // after all functions are defined.
-    
-    // This is where all the previous script content (after firebase init) would go.
-    // To simplify, I'll provide the full script content to paste.
-    // The above was just a snippet for illustration.
-    //
-    // I will now provide the full updated script section.
+    init(); // Call init to start the application
 </script>
 </body>
 </html>
