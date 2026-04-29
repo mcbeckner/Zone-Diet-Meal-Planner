@@ -375,7 +375,31 @@
     </div>
 </div>
 
+<!-- Add these script tags BEFORE your existing <script> tag -->
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script> <!-- For Authentication, which we'll use next -->
+
 <script>
+    // Your Firebase configuration object goes here
+    // PASTE THE firebaseConfig OBJECT YOU COPIED FROM THE FIREBASE CONSOLE HERE
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY", // Replace with your actual key
+        authDomain: "YOUR_AUTH_DOMAIN", // Replace
+        projectId: "YOUR_PROJECT_ID", // Replace
+        storageBucket: "YOUR_STORAGE_BUCKET", // Replace
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // Replace
+        appId: "YOUR_APP_ID", // Replace
+        // measurementId: "YOUR_MEASUREMENT_ID" // Only if Analytics is enabled. You can remove this line if you disabled Analytics.
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = app.firestore(); // Get a reference to the Firestore service
+    const auth = app.auth();    // Get a reference to the Auth service
+
+
     // Initial food list - will be augmented by user-added foods
     let foodList = [
         { id: 'f1', name: "Chicken Breast", category: "protein", groceryCategory: "Meats & Seafood", perBlock: 1.0, unit: "oz" },
