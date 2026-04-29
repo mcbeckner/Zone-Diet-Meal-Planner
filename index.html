@@ -170,13 +170,14 @@
 
 <div class="top-nav">
     <h2 style="margin:0">Mitch & Dee Weekly</h2>
+    <!-- REMOVED user-status element as auth is removed -->
     <div style="display:flex; gap:10px">
         <button class="btn" style="background:white" onclick="openSummary()">Calendar View</button>
         <button class="btn" style="background:white; color:#1a73e8;" onclick="openManageFoods()">Manage Foods</button>
         <button class="btn" style="background:white; color:#34a853;" onclick="openSavedMeals()">Saved Meals</button>
         <button class="btn" style="background:white; color:#f9ab00;" onclick="generateAndDisplayGroceryList()">Grocery List</button> 
         <button class="btn" style="background:white; color:#7d7d7d;" onclick="openSettingsModal()">Settings</button> 
-        <button class="btn" style="background:#34a853; color:white" onclick="saveDataToFirestore()">Save Plan</button>
+        <button class="btn" style="background:#34a853; color:white" onclick="savePlannerDataToFirestore()">Save Plan</button> <!-- Renamed button action -->
     </div>
 </div>
 
@@ -376,6 +377,8 @@
 </div>
 
 <script>
+    alert("Script started. Initializing Firebase..."); // Debug Alert 1
+
     // Your Firebase configuration object goes here
     // PASTE THE firebaseConfig OBJECT YOU COPIED FROM THE FIREBASE CONSOLE HERE
     const firebaseConfig = {
@@ -388,9 +391,15 @@
         // measurementId: "YOUR_MEASUREMENT_ID" // Only if Analytics is enabled. You can remove this line if you disabled Analytics.
     };
 
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    const db = app.firestore(); // Get a reference to the Firestore service
+    let app;
+    let db;
+    try {
+        app = firebase.initializeApp(firebaseConfig);
+        db = app.firestore(); // Get a reference to the Firestore service
+        alert("Firebase initialized successfully. Starting init()..."); // Debug Alert 2
+    } catch (e) {
+        alert("Firebase Initialization Error: " + e.message + "\nPlease check your firebaseConfig object (API Key, Project ID, etc.) in index.html."); // Debug Alert 2.1
+    }
 
     // Removed Firebase Auth and currentUserId variable
 
@@ -448,22 +457,28 @@
 
     // MODIFIED: init() now directly calls UI rendering and data loading
     async function init() {
+        alert("init() function called. Starting data loading from Firestore..."); // Debug Alert 3
         try {
             // Load all data from Firestore
             await loadFoodListFromFirestore(); 
+            alert("Food list loaded. Loading saved meals..."); // Debug Alert 4
             await loadSavedMealsFromFirestore(); 
+            alert("Saved meals loaded. Loading user settings..."); // Debug Alert 5
             await loadUserSettingsFromFirestore(); 
+            alert("User settings loaded. Rendering planner UI..."); // Debug Alert 6
             
             // Render UI based on loaded settings and data
             renderPlannerUI(); 
+            alert("Planner UI rendered. Loading planner data..."); // Debug Alert 7
             await loadPlannerDataFromFirestore(); 
+            alert("Planner data loaded. Performing calculations..."); // Debug Alert 8
 
             calculate(); 
             updateRatiosDisplay(); 
-            alert("Planner loaded successfully!"); 
+            alert("Planner loaded and displayed successfully!"); // Debug Alert 9
         } catch (error) {
             console.error("Error during initial data loading or UI rendering:", error);
-            alert(`Error loading planner data: ${error.message}. Please check Firestore rules and browser console.`); 
+            alert(`Error during application initialization: ${error.message}. Please check Firestore rules and configuration.`); // Debug Alert 10
         }
     }
 
@@ -933,9 +948,12 @@
         });
     }
 
-    // --- Firestore Persistence Functions (NEWLY IMPLEMENTED) ---
+    // --- Firestore Persistence Functions ---
 
-    // Firestore Document References (using fixed IDs as we don't have per-user data anymore)
+    // Firestore Document References (using fixed IDs for global storage)
+    // You might want to pick more unique names for these top-level documents
+    // E.g., 'global_settings', 'global_foods', 'global_savedMeals', 'global_plannerData'
+    // For now, these simple names will work with 'allow read, write: true;'
     const foodsDocRef = db.collection('settings').doc('foods');
     const savedMealsDocRef = db.collection('settings').doc('savedMeals');
     const userSettingsDocRef = db.collection('settings').doc('userSettings');
@@ -958,13 +976,16 @@
                 foodList = mergedList;
                 nextFoodId = foodList.length > 0 ? Math.max(...foodList.map(f => parseInt(f.id.substring(1)))) + 1 : 1;
                 console.log("Food list loaded from Firestore.");
+                alert("Debug: Food list loaded from Firestore."); // Debug Alert in Load
             } else {
-                console.log("No custom food list found in Firestore. Using defaults.");
+                console.log("No custom food list found in Firestore. Using defaults and saving.");
+                alert("Debug: No custom food list found. Saving defaults."); // Debug Alert in Load
                 await saveFoodListToFirestore(); // Save initial hardcoded list to Firestore
             }
         } catch (error) {
             console.error("Error loading food list from Firestore:", error);
-            alert("Error loading food list. Check console for details.");
+            alert("Error loading food list from Firestore: " + error.message); // Debug Alert for errors
+            throw error; // Re-throw to propagate to init's catch
         }
     }
 
@@ -974,9 +995,11 @@
             const customFoodsToSave = foodList.filter(f => !['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11'].includes(f.id));
             await foodsDocRef.set({ customFoods: customFoodsToSave });
             console.log("Food list saved to Firestore.");
+            alert("Debug: Food list saved to Firestore."); // Debug Alert in Save
         } catch (error) {
             console.error("Error saving food list to Firestore:", error);
-            alert("Error saving food list. Check console for details.");
+            alert("Error saving food list to Firestore: " + error.message); // Debug Alert for errors
+            throw error; // Re-throw to propagate
         }
     }
 
@@ -987,12 +1010,15 @@
                 savedMeals = doc.data().meals || [];
                 nextSavedMealId = savedMeals.length > 0 ? Math.max(...savedMeals.map(m => parseInt(m.id.substring(2)))) + 1 : 1;
                 console.log("Saved meals loaded from Firestore.");
+                alert("Debug: Saved meals loaded from Firestore."); // Debug Alert in Load
             } else {
                 console.log("No saved meals found in Firestore.");
+                alert("Debug: No saved meals found."); // Debug Alert in Load
             }
         } catch (error) {
             console.error("Error loading saved meals from Firestore:", error);
-            alert("Error loading saved meals. Check console for details.");
+            alert("Error loading saved meals from Firestore: " + error.message); // Debug Alert for errors
+            throw error; // Re-throw to propagate
         }
     }
 
@@ -1000,9 +1026,11 @@
         try {
             await savedMealsDocRef.set({ meals: savedMeals });
             console.log("Saved meals saved to Firestore.");
+            alert("Debug: Saved meals saved to Firestore."); // Debug Alert in Save
         } catch (error) {
             console.error("Error saving saved meals to Firestore:", error);
-            alert("Error saving saved meals. Check console for details.");
+            alert("Error saving saved meals to Firestore: " + error.message); // Debug Alert for errors
+            throw error; // Re-throw to propagate
         }
     }
 
@@ -1012,20 +1040,22 @@
             if (doc.exists) {
                 const loadedSettings = doc.data();
                 userSettings = { ...userSettings, ...loadedSettings };
-                // Ensure mealDefaultBlocks are present and correctly structured after loading
                 userSettings.mealDefaultBlocks = meals.map(m => {
                     const loaded = loadedSettings.mealDefaultBlocks ? loadedSettings.mealDefaultBlocks.find(item => item.id === m.id) : null;
                     const defaultVal = DEFAULT_USER_SETTINGS.mealDefaultBlocks.find(item => item.id === m.id) || { m: 0, d: 0 }; 
                     return { id: m.id, name: m.name, m: loaded?.m ?? defaultVal.m, d: loaded?.d ?? defaultVal.d };
                 });
                 console.log("User settings loaded from Firestore.");
+                alert("Debug: User settings loaded from Firestore."); // Debug Alert in Load
             } else {
-                console.log("No user settings found in Firestore. Using defaults.");
+                console.log("No user settings found in Firestore. Using defaults and saving.");
+                alert("Debug: No user settings found. Saving defaults."); // Debug Alert in Load
                 await saveUserSettingsToFirestore(); // Save initial defaults to Firestore
             }
         } catch (error) {
             console.error("Error loading user settings from Firestore:", error);
-            alert("Error loading user settings. Check console for details.");
+            alert("Error loading user settings from Firestore: " + error.message); // Debug Alert for errors
+            throw error; // Re-throw to propagate
         }
     }
 
@@ -1033,9 +1063,11 @@
         try {
             await userSettingsDocRef.set(userSettings);
             console.log("User settings saved to Firestore.");
+            alert("Debug: User settings saved to Firestore."); // Debug Alert in Save
         } catch (error) {
             console.error("Error saving user settings to Firestore:", error);
-            alert("Error saving user settings. Check console for details.");
+            alert("Error saving user settings to Firestore: " + error.message); // Debug Alert for errors
+            throw error; // Re-throw to propagate
         }
     }
 
@@ -1065,16 +1097,19 @@
                     });
                 });
                 console.log("Planner data loaded from Firestore.");
+                alert("Debug: Planner data loaded from Firestore."); // Debug Alert in Load
             } else {
                 console.log("No planner data found in Firestore.");
+                alert("Debug: No planner data found."); // Debug Alert in Load
             }
         } catch (error) {
             console.error("Error loading planner data from Firestore:", error);
-            alert("Error loading planner data. Check console for details.");
+            alert("Error loading planner data from Firestore: " + error.message); // Debug Alert for errors
+            throw error; // Re-throw to propagate
         }
     }
 
-    async function saveDataToFirestore() { // Renamed from saveDataToLocalStorage
+    async function savePlannerDataToFirestore() { 
         try {
             const data = [];
             days.forEach(day => {
@@ -1110,7 +1145,8 @@
             console.log("Planner data saved to Firestore.");
         } catch (error) {
             console.error("Error saving planner data to Firestore:", error);
-            alert("Error saving planner data. Check console for details.");
+            alert("Error saving planner data to Firestore: " + error.message); // Debug Alert for errors
+            throw error; // Re-throw to propagate
         }
     }
 
@@ -1148,14 +1184,14 @@
         };
 
         savedMeals.push(newSavedMeal);
-        saveSavedMealsToFirestore(); // Now calls Firestore save
+        saveSavedMealsToFirestore(); 
         alert(`Meal "${mealName}" saved successfully!`);
     }
 
     function deleteSavedMeal(id) {
         if (confirm('Are you sure you want to delete this saved meal?')) {
             savedMeals = savedMeals.filter(m => m.id !== id);
-            saveSavedMealsToFirestore(); // Now calls Firestore save
+            saveSavedMealsToFirestore(); 
             renderSavedMealsList();
         }
     }
@@ -1195,7 +1231,7 @@
         };
 
         foodList.push(newFood);
-        await saveFoodListToFirestore(); // Now calls Firestore save
+        await saveFoodListToFirestore(); 
         renderFoodListManagement(); 
         populateAllDropdowns();     
         closeAddFoodModal();
@@ -1205,7 +1241,7 @@
     async function deleteFood(id) { // Made async
         if (confirm('Are you sure you want to delete this food item?')) {
             foodList = foodList.filter(f => f.id !== id);
-            await saveFoodListToFirestore(); // Now calls Firestore save
+            await saveFoodListToFirestore(); 
             renderFoodListManagement();   
             populateAllDropdowns();       
             calculate();                  
@@ -1232,7 +1268,7 @@
             if (deeInput) mealSetting.d = parseFloat(deeInput.value) || 0;
         });
 
-        await saveUserSettingsToFirestore(); // Now calls Firestore save
+        await saveUserSettingsToFirestore(); 
         calculate(); 
         updateRatiosDisplay(); 
         alert("Settings saved!");
