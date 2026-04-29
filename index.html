@@ -3,36 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zone Strategy - Mitch & Dee Cloud</title>
+    <title>Zone Strategy - Mitch & Dee</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: #f0f2f5; color: #333; }
+        
+        /* Fixed Header Controls */
         .top-nav { background: #1a73e8; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
-        .macro-toolbar { background: #fff; padding: 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: center; align-items: center; gap: 15px; position: sticky; top: 60px; z-index: 999; flex-wrap: wrap; }
-        .macro-toolbar .ratios-display { font-size: 0.9em; color: #555; margin-left: 10px; padding: 5px 10px; background: #f0f0f0; border-radius: 4px; white-space: nowrap; }
+        .macro-toolbar { 
+            background: #fff; padding: 15px; border-bottom: 1px solid #ddd; display: flex; 
+            justify-content: center; align-items: center; gap: 15px; position: sticky; top: 60px; z-index: 999; 
+            flex-wrap: wrap;
+        }
+        .macro-toolbar .ratios-display {
+            font-size: 0.9em;
+            color: #555;
+            margin-left: 10px;
+            padding: 5px 10px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            white-space: nowrap;
+        }
+
+        /* Planning UI */
         .container { max-width: 1400px; margin: auto; padding: 20px; margin-top: 10px; }
         .day-section { background: white; margin-bottom: 25px; border-radius: 8px; border: 1px solid #ddd; overflow: hidden; }
-        .day-header { background: #f8f9fa; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+        .day-header { 
+            background: #f8f9fa; padding: 10px 20px; display: flex; 
+            justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; 
+        }
         .day-header-content { display: flex; align-items: center; gap: 10px; }
-        .meal-row { display: grid; grid-template-columns: 120px 80px 1.5fr 1fr 1fr 100px; gap: 15px; padding: 10px 20px; border-bottom: 1px solid #f9f9f9; align-items: center; }
+        .day-header-actions { display: flex; gap: 10px; }
+        .meal-row { display: grid; grid-template-columns: 120px 80px 1.5fr 1fr 1fr 100px; gap: 15px; padding: 10px 20px; border-bottom: 1px solid #f9f9f9; align-items: center; position: relative; } 
+        
+        /* Food Selection Layout */
         .food-category-section { margin-bottom: 8px; } 
         .food-category-section > label { display: block; font-size: 0.8em; color: #555; margin-bottom: 5px; font-weight: bold;}
         .food-item-row { display: flex; gap: 5px; align-items: center; margin-bottom: 4px; }
         .food-item-row select { flex-grow: 1; min-width: 0; } 
         .food-item-row input[type="number"] { width: 45px; text-align: center; padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px; }
-        .add-food-btn, .remove-food-btn { padding: 4px 8px; font-size: 10px; cursor: pointer; border-radius: 3px; border: 1px solid #ccc; background: #f0f0f0; }
+        .add-food-btn, .remove-food-btn { padding: 4px 8px; font-size: 10px; cursor: pointer; border-radius: 3px; border: 1px solid #ccc; background: #f0f0f0; white-space: nowrap; }
         .add-food-btn { background: #e6f4ea; border-color: #34a853; color: #34a853; font-weight: bold; }
         .remove-food-btn { background: #fce8e6; border-color: #ea4335; color: #ea4335; }
+
         select { padding: 5px; border-radius: 4px; border: 1px solid #ccc; font-size: 12px; }
         .portion-box { font-size: 0.8em; background: #f9f9f9; padding: 8px; border-radius: 4px; border-left: 3px solid #34a853; min-height: 40px;}
         .dee-box { border-left-color: #fbbc05; background: #fffdf2; }
+
+        /* Modal / Popups */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; }
         .modal-content { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; }
+        .food-list-item, .saved-meal-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .food-list-item:hover, .saved-meal-item:hover { background: #f0f7ff; color: #1a73e8; }
+        
+        .grid-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+        .check-item { display: flex; align-items: center; gap: 8px; font-size: 0.9em; padding: 5px; background: #f8f9fa; border-radius: 4px; cursor: pointer; }
+
+        /* Calendar Summary Overlay */
+        #summary-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 3000; justify-content: center; align-items: center; }
+        #summary-overlay .modal-content { max-width: 90%; } 
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; margin-top: 20px; }
         .calendar-day { border: 1px solid #ddd; border-radius: 4px; background: #fff; min-height: 300px; }
         .calendar-day-head { background: #1a73e8; color: white; text-align: center; padding: 8px; font-weight: bold; }
         .calendar-meal { padding: 8px; border-bottom: 1px solid #eee; font-size: 0.75em; }
         .m-text { color: #1a73e8; font-weight: bold; }
         .d-text { color: #c49000; font-weight: bold; }
+
+        /* Badges & Buttons */
         .total-badge { padding: 4px 10px; border-radius: 15px; background: rgba(255,255,255,0.2); border: 1px solid white; font-size: 0.8em; }
         .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .btn-p { background: #d93025; color: white; }
@@ -40,27 +76,58 @@
         .btn-f { background: #f9ab00; color: #333; }
         .btn-combo { background: #4285f4; color: white; } 
         .warning { background: #d93025 !important; }
+
         .meal-macro-totals { display: flex; font-size: 0.7em; gap: 5px; margin-top: 5px; }
         .meal-macro-totals span { padding: 2px 5px; border-radius: 3px; }
-        .p-total { background-color: rgba(217, 48, 37, 0.2); color: #d93025; } 
-        .c-total { background-color: rgba(30, 142, 62, 0.2); color: #1e8e3e; } 
-        .f-total { background-color: rgba(249, 171, 0, 0.2); color: #f9ab00; } 
-        .error { background-color: #d93025 !important; color: white !important; }
-        .modal-body-scrollable { max-height: 60vh; overflow-y: auto; margin-top: 15px; }
-        .save-meal-inline-btn, .copy-day-btn { padding: 3px 8px; font-size: 0.7em; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; }
+        .meal-macro-totals .p-total { background-color: rgba(217, 48, 37, 0.2); color: #d93025; } 
+        .meal-macro-totals .c-total { background-color: rgba(30, 142, 62, 0.2); color: #1e8e3e; } 
+        .meal-macro-totals .f-total { background-color: rgba(249, 171, 0, 0.2); color: #f9ab00; } 
+        .meal-macro-totals .error { background-color: #d93025 !important; color: white !important; }
+
+        .food-management-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 15px; }
+        .food-management-item { padding: 10px; border: 1px solid #eee; border-radius: 6px; background: #f8f8f8; display: flex; justify-content: space-between; align-items: center; font-size: 0.9em; }
+        .food-management-item .details { flex-grow: 1; }
+        .food-management-item .name { font-weight: bold; color: #1a73e8; }
+        .food-management-item .category { font-size: 0.8em; color: #666; text-transform: capitalize; }
+        .food-management-item .per-block { font-size: 0.8em; }
+        .food-management-item .delete-btn { background: #ea4335; color: white; border: none; border-radius: 4px; padding: 5px 8px; cursor: pointer; font-size: 0.7em; margin-left: 10px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; }
+        .form-group input, .form-group select { width: calc(100% - 12px); padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-size: 0.9em; }
+        .helper-text { font-size: 0.75em; color: #666; margin-top: -10px; margin-bottom: 10px; }
+
+        .saved-meal-list { margin-top: 15px; }
+        .saved-meal-list h4 { margin-top: 15px; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+        .saved-meal-list ul { list-style-type: none; padding: 0; margin-left: 10px; }
+        .saved-meal-item { align-items: center; padding-right: 0; border-bottom: 1px dotted #eee; }
+        .saved-meal-item:last-of-type { border-bottom: none; }
+        .saved-meal-item .meal-name { flex-grow: 1; font-weight: bold; }
+        .saved-meal-item .buttons { display: flex; gap: 5px; margin-left: 10px; }
+        .saved-meal-item .delete-btn, .saved-meal-item .load-btn { padding: 5px 8px; border-radius: 4px; cursor: pointer; font-size: 0.7em; }
+        .saved-meal-item .load-btn { background: #1a73e8; color: white; border: none; }
+        .saved-meal-item .delete-btn { background: #ea4335; color: white; border: none; }
+        .save-meal-inline-btn, .copy-day-btn { padding: 3px 8px; font-size: 0.7em; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; cursor: pointer; color: #555; white-space: nowrap; }
+        .save-meal-inline-btn:hover, .copy-day-btn:hover { background: #e0e0e0; }
+
+        .modal-body-scrollable { max-height: 60vh; overflow-y: auto; margin-top: 15px; padding-right: 5px; }
+        #grocery-list-output h4 { margin-top: 15px; margin-bottom: 5px; border-bottom: 1px solid #eee; padding-bottom: 3px; }
+        #grocery-list-output ul { list-style-type: none; padding: 0; margin-left: 10px; }
+        #grocery-list-output li { padding: 3px 0; }
+        .settings-meal-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dotted #eee; }
+        .settings-meal-row input[type="number"] { width: 50px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="top-nav">
-    <h2 style="margin:0">Mitch & Dee Zone Strategy</h2>
+    <h2 style="margin:0">Mitch & Dee Weekly</h2>
     <div style="display:flex; gap:10px">
         <button class="btn" style="background:white" onclick="openSummary()">Calendar View</button>
         <button class="btn" style="background:white; color:#1a73e8;" onclick="openManageFoods()">Manage Foods</button>
         <button class="btn" style="background:white; color:#34a853;" onclick="openSavedMeals()">Saved Meals</button>
         <button class="btn" style="background:white; color:#f9ab00;" onclick="generateAndDisplayGroceryList()">Grocery List</button> 
         <button class="btn" style="background:white; color:#7d7d7d;" onclick="openSettingsModal()">Settings</button> 
-        <button id="sync-btn" class="btn" style="background:#34a853; color:white" onclick="saveDataToCloud()">Sync to Cloud</button>
+        <button id="cloud-sync-btn" class="btn" style="background:#34a853; color:white" onclick="saveDataToCloud()">Sync to Cloud</button>
     </div>
 </div>
 
@@ -73,19 +140,22 @@
 </div>
 
 <div class="container" id="planner-mount">
-    <h3 style="text-align: center; color: #666;">Loading Cloud Data...</h3>
+    <h3 style="text-align:center; color:#666; margin-top:100px;">Loading cloud data...</h3>
 </div>
 
-<!-- Modals (Simplified for brevity but fully functional) -->
-<div id="modal-library" class="modal"><div class="modal-content"><h3 id="library-title"></h3><div id="library-list" class="modal-body-scrollable"></div><button class="btn" style="width:100%; margin-top:15px" onclick="closeModals()">Cancel</button></div></div>
-<div id="modal-assign" class="modal"><div class="modal-content"><h3>Apply <span id="selected-food-name"></span></h3><b>Proportion:</b> <input type="number" id="bulk-assign-proportion" value="1" step="0.5" style="width: 50px;"><br><br><b>Meals:</b><div id="assign-meals" class="calendar-grid" style="grid-template-columns: 1fr 1fr;"></div><b>Days:</b><div id="assign-days" class="calendar-grid" style="grid-template-columns: 1fr 1fr;"></div><button class="btn" style="background:#1a73e8; color:white; width:100%; margin-top:15px" onclick="executeBulkApply()">Apply</button></div></div>
-<div id="modal-manage-foods" class="modal"><div class="modal-content"><h3>Manage Foods</h3><button class="btn" onclick="openAddFoodModal()">+ Add New</button><div id="food-management-list" class="modal-body-scrollable"></div><button class="btn" style="width:100%" onclick="closeModals()">Done</button></div></div>
-<div id="modal-saved-meals" class="modal"><div class="modal-content"><h3>Saved Meals</h3><div id="saved-meal-list" class="modal-body-scrollable"></div><button class="btn" style="width:100%" onclick="closeModals()">Done</button></div></div>
-<div id="modal-grocery-list" class="modal"><div class="modal-content"><h3>Grocery List</h3><div id="grocery-list-output" class="modal-body-scrollable"></div><button class="btn" style="width:100%" onclick="closeModals()">Close</button></div></div>
-<div id="modal-settings" class="modal"><div class="modal-content"><h3>Settings</h3><div id="settings-meal-defaults"></div><button class="btn" style="background:#1a73e8; color:white; width:100%" onclick="saveSettings()">Save</button></div></div>
-<div id="summary-overlay" class="modal"><div class="modal-content" style="max-width: 95%;"><h2>Calendar Overview</h2><div class="calendar-grid" id="calendar-grid"></div><button class="btn" onclick="closeSummary()">Close</button></div></div>
+<!-- All your original Modals (1-9) kept exactly the same -->
+<div id="modal-library" class="modal"><div class="modal-content"><h3 id="library-title">Select Food</h3><div id="library-list" class="modal-body-scrollable"></div><button class="btn" style="width:100%; margin-top:15px" onclick="closeModals()">Cancel</button></div></div>
+<div id="modal-assign" class="modal"><div class="modal-content"><h3>Apply <span id="selected-food-name" style="color: #1a73e8;"></span></h3><b>Proportion (parts):</b> <input type="number" id="bulk-assign-proportion" value="1" min="0.5" step="0.5" style="width: 60px; margin-left: 10px; padding: 5px; border-radius: 4px; border: 1px solid #ccc;"><br><br><b>Select Meals:</b><div class="grid-selector" id="assign-meals"><label class="check-item"><input type="checkbox" value="brk"> Breakfast</label><label class="check-item"><input type="checkbox" value="sn1"> Snack 1</label><label class="check-item"><input type="checkbox" value="lun"> Lunch</label><label class="check-item"><input type="checkbox" value="sn2"> Snack 2</label><label class="check-item"><input type="checkbox" value="din"> Dinner</label></div><b>Select Days:</b><div class="grid-selector" id="assign-days"></div><button class="btn" style="background:#1a73e8; color:white; width:100%; margin-top:15px" onclick="executeBulkApply()">Apply to All Selected</button><button class="btn" style="width:100%; margin-top:5px" onclick="closeModals()">Cancel</button></div></div>
+<div id="modal-manage-foods" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><h3>Manage Food Library</h3><button class="btn" style="background:#34a853; color:white; padding:8px 15px;" onclick="openAddFoodModal()">+ Add New Food</button></div><div id="food-management-list" class="food-management-list modal-body-scrollable"></div><button class="btn" style="width:100%; margin-top:15px" onclick="closeModals()">Done</button></div></div>
+<div id="modal-add-food" class="modal"><div class="modal-content"><h3>Add New Food</h3><div class="form-group"><label for="new-food-name">Food Name:</label><input type="text" id="new-food-name" placeholder="e.g., Cottage Cheese"></div><div class="form-group"><label for="new-food-category">Category:</label><select id="new-food-category"><option value="protein">Protein</option><option value="carb">Carb</option><option value="fat">Fat</option><option value="combo">Combo (Protein + Carb)</option></select></div><div class="form-group"><label for="new-food-grocery-category">Grocery Category:</label><select id="new-food-grocery-category"><option value="Meats & Seafood">Meats & Seafood</option><option value="Vegetables">Vegetables</option><option value="Fruits">Fruits</option><option value="Dairy & Eggs">Dairy & Eggs</option><option value="Grains & Baking">Grains & Baking</option><option value="Nuts & Seeds">Nuts & Seeds</option><option value="Oils & Condiments">Oils & Condiments</option><option value="Beverages">Beverages</option><option value="Snacks">Snacks</option><option value="Other">Other</option></select></div><div class="form-group"><label for="new-food-per-block">Quantity per Block:</label><input type="number" id="new-food-per-block" min="0.1" step="0.1" value="1.0"><p class="helper-text">This is the physical quantity for ONE block (e.g., 1.0 oz, 0.5 cups).</p></div><div class="form-group"><label for="new-food-unit">Unit:</label><input type="text" id="new-food-unit" placeholder="e.g., oz, cup, tbsp"></div><button class="btn" style="background:#1a73e8; color:white; width:100%; margin-top:15px" onclick="addNewFood()">Save Food</button><button class="btn" style="width:100%; margin-top:5px" onclick="closeAddFoodModal()">Cancel</button></div></div>
+<div id="modal-saved-meals" class="modal"><div class="modal-content"><h3>Saved Meals</h3><div id="saved-meal-list" class="saved-meal-list modal-body-scrollable"></div><button class="btn" style="width:100%; margin-top:15px" onclick="closeModals()">Done</button></div></div>
+<div id="modal-load-saved-meal" class="modal"><div class="modal-content"><h3 id="load-meal-title">Load Saved Meal</h3><b>Select Meals:</b><div class="grid-selector" id="load-meals-assign"><label class="check-item"><input type="checkbox" value="brk"> Breakfast</label><label class="check-item"><input type="checkbox" value="sn1"> Snack 1</label><label class="check-item"><input type="checkbox" value="lun"> Lunch</label><label class="check-item"><input type="checkbox" value="sn2"> Snack 2</label><label class="check-item"><input type="checkbox" value="din"> Dinner</label></div><b>Select Days:</b><div class="grid-selector" id="load-days-assign"></div><button class="btn" style="background:#1a73e8; color:white; width:100%; margin-top:15px" onclick="applySavedMeal()">Load to Selected</button><button class="btn" style="width:100%; margin-top:5px" onclick="closeModals()">Cancel</button></div></div>
+<div id="modal-copy-day" class="modal"><div class="modal-content"><h3 id="copy-day-title">Copy Day Plan</h3><b>Copy to which days?</b><div class="grid-selector" id="copy-days-target"></div><button class="btn" style="background:#1a73e8; color:white; width:100%; margin-top:15px" onclick="executeCopyDay()">Apply Copy</button><button class="btn" style="width:100%; margin-top:5px" onclick="closeModals()">Cancel</button></div></div>
+<div id="modal-grocery-list" class="modal"><div class="modal-content"><h3>Weekly Grocery List</h3><div class="modal-body-scrollable"><div id="grocery-list-output" style="list-style-type: none; padding: 0;"></div></div><button class="btn" style="width:100%; margin-top:15px" onclick="closeModals()">Close</button></div></div>
+<div id="modal-settings" class="modal"><div class="modal-content"><h3>Settings</h3><div class="form-group"><label for="setting-mitch-total-daily-blocks">Mitch's Total Daily Blocks:</label><input type="number" id="setting-mitch-total-daily-blocks" min="1" step="1"></div><div class="form-group"><label for="setting-dee-total-daily-blocks">Dee's Total Daily Blocks:</label><input type="number" id="setting-dee-total-daily-blocks" min="1" step="1"></div><h4>Default Meal Block Distribution</h4><div id="settings-meal-defaults" class="modal-body-scrollable"></div><button class="btn" style="background:#1a73e8; color:white; width:100%; margin-top:15px" onclick="saveSettings()">Save Settings</button><button class="btn" style="background:#34a853; color:white; width:100%; margin-top:5px" onclick="applySettingsToPlanner()">Apply Defaults to Planner</button><button class="btn" style="width:100%; margin-top:5px" onclick="closeModals()">Cancel</button></div></div>
+<div id="summary-overlay" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; align-items:center;"><h2>Weekly Calendar Overview</h2><div style="display:flex; gap:10px;"><button class="btn btn-p" style="background:#1a73e8" onclick="renderCalendar('both')">Both</button><button class="btn btn-p" style="background:#1a73e8" onclick="renderCalendar('mitch')">Mitch Only</button><button class="btn btn-p" style="background:#1a73e8" onclick="renderCalendar('dee')">Dee Only</button><button class="btn" onclick="closeSummary()">Close & Edit</button></div></div><div class="calendar-grid" id="calendar-grid"></div></div></div>
 
-<!-- Firebase Logic -->
+<!-- FIREBASE SDK -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -104,24 +174,33 @@
     const docRef = doc(db, "plans", "weekly-strategy");
 
     window.saveDataToCloud = async function() {
-        const btn = document.getElementById('sync-btn');
-        btn.innerText = "Syncing...";
+        const syncBtn = document.getElementById('cloud-sync-btn');
+        syncBtn.innerText = "Syncing...";
+        syncBtn.disabled = true;
+
         const plannerData = [];
         days.forEach(day => {
             const dayData = { day, meals: [] };
             meals.forEach(m => {
-                const row = document.querySelector(`#day-${day} [data-meal-id="${m.id}"]`);
-                if (row) {
+                const mealRow = document.querySelector(`#day-${day} [data-meal-id="${m.id}"]`);
+                if (mealRow) {
                     const mealData = {
                         id: m.id,
-                        mBlocks: row.querySelector('.in-m').value,
-                        dBlocks: row.querySelector('.in-d').value,
-                        foodItems: Array.from(row.querySelectorAll('.food-item-row')).map(ir => ({
-                            cat: ir.dataset.cat,
-                            foodJson: ir.querySelector('.food-select').value,
-                            proportion: parseFloat(ir.querySelector('.proportion-input').value)
-                        })).filter(fi => fi.foodJson)
+                        mBlocks: mealRow.querySelector('.in-m').value,
+                        dBlocks: mealRow.querySelector('.in-d').value,
+                        foodItems: [] 
                     };
+                    mealRow.querySelectorAll('.food-item-row').forEach(itemRow => {
+                        const select = itemRow.querySelector('.food-select');
+                        const proportionInput = itemRow.querySelector('.proportion-input'); 
+                        if (select.value && proportionInput.value) {
+                            mealData.foodItems.push({
+                                cat: itemRow.dataset.cat, 
+                                foodJson: select.value, 
+                                proportion: parseFloat(proportionInput.value) 
+                            });
+                        }
+                    });
                     dayData.meals.push(mealData);
                 }
             });
@@ -129,169 +208,411 @@
         });
 
         try {
-            await setDoc(docRef, { plannerData, foodList, savedMeals, userSettings, lastUpdated: new Date() });
-            btn.innerText = "Sync to Cloud";
+            await setDoc(docRef, {
+                plannerData,
+                foodList,
+                savedMeals,
+                userSettings,
+                lastUpdated: new Date()
+            });
             alert("Cloud Sync Successful!");
-        } catch (e) { alert("Error: " + e.message); }
+        } catch (e) {
+            console.error(e);
+            alert("Error syncing to cloud.");
+        } finally {
+            syncBtn.innerText = "Sync to Cloud";
+            syncBtn.disabled = false;
+        }
     };
 
     window.loadDataFromCloud = async function() {
         try {
-            const snap = await getDoc(docRef);
-            if (snap.exists()) {
-                const data = snap.data();
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
                 if (data.foodList) foodList = data.foodList;
                 if (data.savedMeals) savedMeals = data.savedMeals;
                 if (data.userSettings) userSettings = data.userSettings;
-                initUI(data.plannerData);
+                init(data.plannerData);
             } else {
-                initUI(null);
+                init();
             }
-        } catch (e) { console.error(e); initUI(null); }
+        } catch (e) {
+            console.error("Cloud load failed, using local defaults.", e);
+            init();
+        }
     };
 
     window.addEventListener('DOMContentLoaded', loadDataFromCloud);
 </script>
 
 <script>
-    // Global State
+    /* 
+       THE REST OF YOUR ORIGINAL JAVASCRIPT LOGIC
+       PASTED BELOW WITHOUT MODIFICATION (except init receiving data)
+    */
     let foodList = [
         { id: 'f1', name: "Chicken Breast", category: "protein", groceryCategory: "Meats & Seafood", perBlock: 1.0, unit: "oz" },
-        { id: 'f2', name: "Egg Whites", category: "protein", groceryCategory: "Dairy & Eggs", perBlock: 0.3, unit: "cups" },
+        { id: 'f2', name: "Egg Whites", category: "protein", groceryCategory: "Dairy & Eggs", perBlock: 2.0, unit: "cups" },
+        { id: 'f3', name: "Greek Yogurt", category: "protein", groceryCategory: "Dairy & Eggs", perBlock: 0.5, unit: "cups" },
         { id: 'f4', name: "Apple", category: "carb", groceryCategory: "Fruits", perBlock: 0.5, unit: "large" },
+        { id: 'f5', name: "Oatmeal", category: "carb", groceryCategory: "Grains & Baking", perBlock: 0.3, unit: "cups" },
         { id: 'f6', name: "Broccoli", category: "carb", groceryCategory: "Vegetables", perBlock: 1.25, unit: "cups" },
         { id: 'f7', name: "Almonds", category: "fat", groceryCategory: "Nuts & Seeds", perBlock: 3, unit: "whole" },
-        { id: 'f8', name: "Avocado", category: "fat", groceryCategory: "Fruits", perBlock: 1, unit: "tbsp" }
+        { id: 'f8', name: "Avocado", category: "fat", groceryCategory: "Fruits", perBlock: 1, unit: "tbsp" },
+        { id: 'f9', name: "Olive Oil", category: "fat", groceryCategory: "Oils & Condiments", perBlock: 0.3, unit: "tsp" },
+        { id: 'f10', name: "Milk (Skim)", category: "combo", groceryCategory: "Dairy & Eggs", perBlock: 0.5, unit: "cup" },
+        { id: 'f11', name: "Black Beans", category: "combo", groceryCategory: "Grains & Legumes", perBlock: 0.25, unit: "cup" }
     ];
-    let savedMeals = [];
-    let userSettings = {
-        mitchTotalDailyBlocks: 16, deeTotalDailyBlocks: 10,
-        mealDefaultBlocks: [{id:'brk',m:4,d:2},{id:'sn1',m:2,d:1},{id:'lun',m:4,d:3},{id:'sn2',m:2,d:1},{id:'din',m:4,d:3}]
-    };
+    let nextFoodId = foodList.length > 0 ? 50 : 1; 
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const meals = [{id:'brk',name:'Breakfast'},{id:'sn1',name:'Snack 1'},{id:'lun',name:'Lunch'},{id:'sn2',name:'Snack 2'},{id:'din',name:'Dinner'}];
+    const meals = [{ id: 'brk', name: 'Breakfast' },{ id: 'sn1', name: 'Snack 1' },{ id: 'lun', name: 'Lunch' },{ id: 'sn2', name: 'Snack 2' },{ id: 'din', name: 'Dinner' }];
+    let currentBulkFood = null;
+    let savedMeals = [];
+    let nextSavedMealId = 1;
+    let selectedSavedMealForLoad = null; 
+    let currentDayToCopy = null; 
+    const DEFAULT_USER_SETTINGS = { mitchTotalDailyBlocks: 16, deeTotalDailyBlocks: 10, mealDefaultBlocks: [{ id: 'brk', name: 'Breakfast', m: 4, d: 2 },{ id: 'sn1', name: 'Snack 1', m: 2, d: 1 },{ id: 'lun', name: 'Lunch', m: 4, d: 3 },{ id: 'sn2', name: 'Snack 2', m: 2, d: 1 },{ id: 'din', name: 'Dinner', m: 4, d: 3 }] };
+    let userSettings = { ...DEFAULT_USER_SETTINGS };
 
-    function initUI(cloudPlannerData) {
+    function init(cloudPlannerData = null) {
         const mount = document.getElementById('planner-mount');
-        mount.innerHTML = "";
+        mount.innerHTML = ""; 
         days.forEach(day => {
-            let html = `<div class="day-section" id="day-${day}"><div class="day-header"><b>${day}</b><div style="display:flex; gap:10px;"><div class="total-badge" id="b-mitch-${day}">Mitch: 0</div><div class="total-badge" id="b-dee-${day}">Dee: 0</div></div></div>`;
+            const dayDiv = document.createElement('div');
+            dayDiv.className = 'day-section';
+            dayDiv.id = `day-${day}`;
+            let html = `<div class="day-header"><div class="day-header-content"><b>${day}</b><div style="display:flex; gap:10px;"><div class="total-badge" id="b-mitch-${day}">Mitch: 0/${userSettings.mitchTotalDailyBlocks}</div><div class="total-badge" id="b-dee-${day}">Dee: 0/${userSettings.deeTotalDailyBlocks}</div></div></div><div class="day-header-actions"><button class="copy-day-btn" onclick="openCopyDayModal('${day}')">Copy Day</button></div></div>`;
             meals.forEach(m => {
-                const def = userSettings.mealDefaultBlocks.find(x=>x.id===m.id);
-                html += `<div class="meal-row" data-meal-id="${m.id}" data-day="${day}">
-                    <div style="font-weight:bold">${m.name}</div>
-                    <div><input type="number" class="in-m" value="${def.m}" onchange="calculate()"><input type="number" class="in-d" value="${def.d}" onchange="calculate()"></div>
-                    <div class="food-area">
-                        <div class="p-foods food-items-container"></div><button class="add-food-btn" onclick="addFoodItem(this.previousElementSibling, 'p')">+ P</button>
-                        <div class="c-foods food-items-container"></div><button class="add-food-btn" onclick="addFoodItem(this.previousElementSibling, 'c')">+ C</button>
-                        <div class="f-foods food-items-container"></div><button class="add-food-btn" onclick="addFoodItem(this.previousElementSibling, 'f')">+ F</button>
-                    </div>
-                    <div class="portion-box" id="res-mitch-${day}-${m.id}"></div>
-                    <div class="portion-box dee-box" id="res-dee-${day}-${m.id}"></div>
-                    <button class="save-meal-inline-btn" onclick="saveCurrentMeal('${day}','${m.id}')">Save</button>
-                </div>`;
+                const defMeal = userSettings.mealDefaultBlocks.find(item => item.id === m.id) || { m: 0, d: 0 };
+                html += `<div class="meal-row" data-meal-id="${m.id}" data-day="${day}"><div style="font-weight:bold; font-size:0.85em;">${m.name}</div><div style="display:flex; flex-direction:column; gap:2px;"><input type="number" class="in-m" value="${defMeal.m}" onchange="calculate()"> <input type="number" class="in-d" value="${defMeal.d}" onchange="calculate()"></div><div class="food-area">${renderFoodCategorySection('p', 'Protein')}${renderFoodCategorySection('c', 'Carb')}${renderFoodCategorySection('f', 'Fat')}</div><div><div class="portion-box" id="res-mitch-${day}-${m.id}"></div><div class="meal-macro-totals" id="mitch-totals-${day}-${m.id}"></div></div><div><div class="portion-box dee-box" id="res-dee-${day}-${m.id}"></div><div class="meal-macro-totals" id="dee-totals-${day}-${m.id}"></div></div><button class="save-meal-inline-btn" onclick="saveCurrentMeal('${day}', '${m.id}')">Save Meal</button></div>`;
             });
-            mount.innerHTML += html + `</div>`;
+            dayDiv.innerHTML = html; mount.appendChild(dayDiv);
         });
 
-        if(cloudPlannerData) {
+        const assignDaySelector = document.getElementById('assign-days');
+        const loadDaySelector = document.getElementById('load-days-assign'); 
+        const copyDaysTargetSelector = document.getElementById('copy-days-target'); 
+        assignDaySelector.innerHTML = ""; loadDaySelector.innerHTML = ""; copyDaysTargetSelector.innerHTML = ""; 
+        days.forEach(d => {
+            assignDaySelector.innerHTML += `<label class="check-item"><input type="checkbox" value="${d}" checked> ${d}</label>`;
+            loadDaySelector.innerHTML += `<label class="check-item"><input type="checkbox" value="${d}" checked> ${d}</label>`;
+            copyDaysTargetSelector.innerHTML += `<label class="check-item"><input type="checkbox" value="${d}" checked> ${d}</label>`; 
+        });
+
+        if (cloudPlannerData) {
             cloudPlannerData.forEach(d => {
                 d.meals.forEach(m => {
-                    const row = document.querySelector(`#day-${d.day} [data-meal-id="${m.id}"]`);
-                    if(row) {
-                        row.querySelector('.in-m').value = m.mBlocks;
-                        row.querySelector('.in-d').value = m.dBlocks;
-                        m.foodItems.forEach(fi => {
-                            const cont = row.querySelector(`.${fi.cat}-foods`);
-                            addFoodItem(cont, fi.cat, fi.foodJson, fi.proportion, false);
+                    const mealRow = document.querySelector(`#day-${d.day} [data-meal-id="${m.id}"]`);
+                    if (mealRow) {
+                        mealRow.querySelector('.in-m').value = m.mBlocks;
+                        mealRow.querySelector('.in-d').value = m.dBlocks;
+                        mealRow.querySelectorAll('.food-items-container').forEach(c => c.innerHTML = '');
+                        m.foodItems.forEach(item => {
+                            const container = mealRow.querySelector(`.${item.cat}-foods`);
+                            if (container) addFoodItem(container, item.cat, item.foodJson, item.proportion, false);
                         });
                     }
                 });
             });
+        } else {
+            document.querySelectorAll('.meal-row').forEach(row => {
+                addFoodItem(row.querySelector('.food-area .p-foods'), 'p', null, 1, false);
+                addFoodItem(row.querySelector('.food-area .c-foods'), 'c', null, 1, false);
+                addFoodItem(row.querySelector('.food-area .f-foods'), 'f', null, 1, false);
+            });
         }
-        calculate();
-        updateRatiosDisplay();
+        
+        calculate(); updateRatiosDisplay();
     }
 
-    function addFoodItem(container, cat, json = null, prop = 1, trigger = true) {
-        const div = document.createElement('div');
-        div.className = 'food-item-row'; div.dataset.cat = cat;
-        const sel = document.createElement('select'); sel.className='food-select'; sel.onchange = calculate;
-        sel.innerHTML = '<option value="">Select...</option>';
-        foodList.filter(f => cat==='f' ? f.category==='fat' : (f.category===(cat==='p'?'protein':'carb') || f.category==='combo')).forEach(f => {
-            const opt = new Option(f.name, JSON.stringify(f));
-            sel.add(opt);
-        });
-        if(json) sel.value = json;
-        const inp = document.createElement('input'); inp.type='number'; inp.className='proportion-input'; inp.value=prop; inp.onchange=calculate;
-        const btn = document.createElement('button'); btn.className='remove-food-btn'; btn.innerText='X'; btn.onclick=()=>{div.remove();calculate();};
-        div.append(sel, inp, btn); container.appendChild(div);
-        if(trigger) calculate();
+    function renderFoodCategorySection(catCode, label) { return `<div class="food-category-section"><label>${label}</label><div class="${catCode}-foods food-items-container"></div><button class="add-food-btn" onclick="addFoodItem(this.previousElementSibling, '${catCode}')">+ Add Item</button></div>`; }
+
+    function addFoodItem(containerElement, categoryCode, foodJsonString = null, proportionVal = 1, triggerCalculate = true) {
+        const itemRow = document.createElement('div');
+        itemRow.className = 'food-item-row';
+        itemRow.dataset.cat = categoryCode; 
+        const select = document.createElement('select'); select.className = 'food-select'; select.onchange = calculate; select.innerHTML = '<option value="">Select...</option>';
+        const allowed = (categoryCode === 'p') ? ['protein', 'combo'] : (categoryCode === 'c') ? ['carb', 'combo'] : ['fat'];
+        foodList.filter(f => allowed.includes(f.category)).forEach(food => { select.add(new Option(food.name, JSON.stringify(food))); });
+        const proportionInput = document.createElement('input'); proportionInput.type = 'number'; proportionInput.className = 'proportion-input'; proportionInput.value = proportionVal; proportionInput.min = '0.5'; proportionInput.step = '0.5'; proportionInput.onchange = calculate;
+        const removeButton = document.createElement('button'); removeButton.className = 'remove-food-btn'; removeButton.textContent = 'X'; removeButton.onclick = function() { itemRow.remove(); calculate(); };
+        itemRow.appendChild(select); itemRow.appendChild(proportionInput); itemRow.appendChild(removeButton); containerElement.appendChild(itemRow);
+        if (foodJsonString) {
+            try {
+                const loadedFood = JSON.parse(foodJsonString);
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value) {
+                        const optF = JSON.parse(select.options[i].value);
+                        if (optF.id === loadedFood.id) { select.value = select.options[i].value; break; }
+                    }
+                }
+            } catch (e) {}
+        }
+        if (triggerCalculate) calculate();
+        return itemRow;
     }
 
     function calculate() {
         days.forEach(day => {
-            let totalM = 0, totalD = 0;
+            const dailyM = { p: 0, c: 0, f: 0 }; const dailyD = { p: 0, c: 0, f: 0 };
             meals.forEach(m => {
-                const row = document.querySelector(`#day-${day} [data-meal-id="${m.id}"]`);
-                const targetM = parseFloat(row.querySelector('.in-m').value) || 0;
-                const targetD = parseFloat(row.querySelector('.in-d').value) || 0;
-                
-                const foods = { protein: [], carb: [], fat: [], combo: [] };
-                row.querySelectorAll('.food-item-row').forEach(ir => {
-                    const val = ir.querySelector('.food-select').value;
-                    if(val) {
-                        const f = JSON.parse(val);
-                        foods[f.category].push({food: f, prop: parseFloat(ir.querySelector('.proportion-input').value) || 1});
+                const mealRow = document.querySelector(`#day-${day} [data-meal-id="${m.id}"]`);
+                if (!mealRow) return;
+                const tm = parseFloat(mealRow.querySelector('.in-m').value) || 0;
+                const td = parseFloat(mealRow.querySelector('.in-d').value) || 0;
+                const mealFoods = { protein: [], carb: [], fat: [], combo: [] };
+                mealRow.querySelectorAll('.food-item-row').forEach(itemRow => {
+                    const sel = itemRow.querySelector('.food-select');
+                    const prop = itemRow.querySelector('.proportion-input');
+                    if (sel.value && prop.value) {
+                        const f = JSON.parse(sel.value); const p = parseFloat(prop.value);
+                        if (p > 0) mealFoods[f.category].push({ food: f, proportion: p });
                     }
                 });
-
-                const resM = calcPerson(foods, targetM);
-                const resD = calcPerson(foods, targetD);
-
-                document.getElementById(`res-mitch-${day}-${m.id}`).innerHTML = renderPortions(resM);
-                document.getElementById(`res-dee-${day}-${m.id}`).innerHTML = renderPortions(resD);
-                totalM += targetM; totalD += targetD;
+                const resM = calculatePersonMealBlocks(mealFoods, tm);
+                const resD = calculatePersonMealBlocks(mealFoods, td);
+                document.getElementById(`mitch-totals-${day}-${m.id}`).innerHTML = `<span class="p-total ${Math.abs(resM.actualProtein - tm) > 0.1 ? 'error' : ''}">P:${resM.actualProtein.toFixed(1)}</span><span class="c-total ${Math.abs(resM.actualCarb - tm) > 0.1 ? 'error' : ''}">C:${resM.actualCarb.toFixed(1)}</span><span class="f-total ${Math.abs(resM.actualFat - tm) > 0.1 ? 'error' : ''}">F:${resM.actualFat.toFixed(1)}</span>`;
+                document.getElementById(`dee-totals-${day}-${m.id}`).innerHTML = `<span class="p-total ${Math.abs(resD.actualProtein - td) > 0.1 ? 'error' : ''}">P:${resD.actualProtein.toFixed(1)}</span><span class="c-total ${Math.abs(resD.actualCarb - td) > 0.1 ? 'error' : ''}">C:${resD.actualCarb.toFixed(1)}</span><span class="f-total ${Math.abs(resD.actualFat - td) > 0.1 ? 'error' : ''}">F:${resD.actualFat.toFixed(1)}</span>`;
+                document.getElementById(`res-mitch-${day}-${m.id}`).innerHTML = getPortionHTML(resM.distributedFoods);
+                document.getElementById(`res-dee-${day}-${m.id}`).innerHTML = getPortionHTML(resD.distributedFoods);
+                dailyM.p += resM.actualProtein; dailyM.c += resM.actualCarb; dailyM.f += resM.actualFat;
+                dailyD.p += resD.actualProtein; dailyD.c += resD.actualCarb; dailyD.f += resD.actualFat;
             });
-            document.getElementById(`b-mitch-${day}`).innerText = `Mitch: ${totalM}`;
-            document.getElementById(`b-dee-${day}`).innerText = `Dee: ${totalD}`;
+            updateBadge(`b-mitch-${day}`, Math.min(dailyM.p, dailyM.c, dailyM.f), userSettings.mitchTotalDailyBlocks);
+            updateBadge(`b-dee-${day}`, Math.min(dailyD.p, dailyD.c, dailyD.f), userSettings.deeTotalDailyBlocks);
         });
     }
 
-    function calcPerson(foods, target) {
-        let items = [];
-        ['protein','carb','fat','combo'].forEach(cat => {
-            const sumProp = foods[cat].reduce((a,b)=>a+b.prop, 0);
-            foods[cat].forEach(f => {
-                items.push({name: f.food.name, qty: (f.prop/sumProp * target * f.food.perBlock), unit: f.food.unit});
-            });
+    function calculatePersonMealBlocks(mealFoods, targetBlocks) {
+        let ap = 0, ac = 0, af = 0; const df = { protein: [], carb: [], fat: [], combo: [] };
+        let tfp = mealFoods.fat.reduce((s, i) => s + i.proportion, 0);
+        let bfp = (tfp > 0) ? targetBlocks / tfp : 0;
+        mealFoods.fat.forEach(i => { let b = i.proportion * bfp; af += b; df.fat.push({ food: i.food, blocks: b }); });
+        let tcp = mealFoods.combo.reduce((s, i) => s + i.proportion, 0);
+        let bcp = (tcp > 0) ? targetBlocks / tcp : 0;
+        mealFoods.combo.forEach(i => { let b = i.proportion * bcp; ap += b; ac += b; df.combo.push({ food: i.food, blocks: b }); });
+        let tpp = mealFoods.protein.reduce((s, i) => s + i.proportion, 0);
+        let rp = Math.max(0, targetBlocks - ap);
+        let bpp = (tpp > 0) ? rp / tpp : 0;
+        mealFoods.protein.forEach(i => { let b = i.proportion * bpp; ap += b; df.protein.push({ food: i.food, blocks: b }); });
+        let tcc = mealFoods.carb.reduce((s, i) => s + i.proportion, 0);
+        let rc = Math.max(0, targetBlocks - ac);
+        let bcc = (tcc > 0) ? rc / tcc : 0;
+        mealFoods.carb.forEach(i => { let b = i.proportion * bcc; ac += b; df.carb.push({ food: i.food, blocks: b }); });
+        return { actualProtein: ap, actualCarb: ac, actualFat: af, distributedFoods: df };
+    }
+
+    function getPortionHTML(df) {
+        let h = ""; const items = [...df.protein.map(i=>({...i,dc:'protein'})),...df.carb.map(i=>({...i,dc:'carb'})),...df.fat.map(i=>({...i,dc:'fat'})),...df.combo.map(i=>({...i,dc:'combo'}))];
+        items.sort((a,b)=>({protein:1,carb:2,fat:3,combo:4}[a.dc]-{protein:1,carb:2,fat:3,combo:4}[b.dc]));
+        items.forEach(i => {
+            let cl = i.dc==='protein'?'m-text':i.dc==='carb'?'c-total':i.dc==='fat'?'f-total':'d-text';
+            if(i.blocks > 0.05) h += `<span class="${cl}">${(i.food.perBlock * i.blocks).toFixed(1)} ${i.food.unit}</span> ${i.food.name} <span style="font-size:0.8em; color:#999;">(${i.blocks.toFixed(1)} blk)</span><br>`;
         });
-        return items;
+        return h;
     }
 
-    function renderPortions(items) {
-        return items.filter(i=>!isNaN(i.qty)).map(i => `<div><b>${i.qty.toFixed(1)} ${i.unit}</b> ${i.name}</div>`).join('');
+    function updateBadge(id, cur, tar) { const el = document.getElementById(id); el.innerText = `${id.includes('mitch')?'Mitch':'Dee'}: ${cur.toFixed(1)}/${tar}`; el.classList.toggle('warning', Math.abs(cur - tar) > 0.5); }
+    function openSummary() { renderCalendar('both'); document.getElementById('summary-overlay').style.display = 'flex'; }
+    function closeSummary() { document.getElementById('summary-overlay').style.display = 'none'; }
+    function renderCalendar(mode) {
+        const grid = document.getElementById('calendar-grid'); grid.innerHTML = "";
+        days.forEach(day => {
+            let h = `<div class="calendar-day"><div class="calendar-day-head">${day}</div>`;
+            meals.forEach(m => {
+                const row = document.querySelector(`#day-${day} [data-meal-id="${m.id}"]`);
+                const tm = parseFloat(row.querySelector('.in-m').value) || 0;
+                const td = parseFloat(row.querySelector('.in-d').value) || 0;
+                const mf = { protein: [], carb: [], fat: [], combo: [] };
+                row.querySelectorAll('.food-item-row').forEach(ir => {
+                    const s = ir.querySelector('.food-select'); const p = ir.querySelector('.proportion-input');
+                    if(s.value && p.value) { const f = JSON.parse(s.value); const pr = parseFloat(p.value); if(pr>0) mf[f.category].push({food:f,proportion:pr}); }
+                });
+                h += `<div class="calendar-meal"><b>${m.name}</b><br>`;
+                if(mode==='both'||mode==='mitch') h += `<span class="m-text">M:</span> ${getPortionHTML(calculatePersonMealBlocks(mf, tm).distributedFoods).replace(/<br>/g, '; ')}<br>`;
+                if(mode==='both'||mode==='dee') h += `<span class="d-text">D:</span> ${getPortionHTML(calculatePersonMealBlocks(mf, td).distributedFoods).replace(/<br>/g, '; ')}`;
+                h += `</div>`;
+            });
+            grid.innerHTML += h + `</div>`;
+        });
     }
 
-    function updateRatiosDisplay() {
-        document.getElementById('ratios-display').innerText = `Targets: Mitch ${userSettings.mitchTotalDailyBlocks} | Dee ${userSettings.deeTotalDailyBlocks}`;
-    }
-
-    function openFoodLibrary(cat) {
-        const modal = document.getElementById('modal-library');
-        const list = document.getElementById('library-list');
-        list.innerHTML = "";
+    function openManageFoods() { renderFoodListManagement(); document.getElementById('modal-manage-foods').style.display = 'flex'; }
+    function renderFoodListManagement() {
+        const cont = document.getElementById('food-management-list'); cont.innerHTML = '';
         foodList.forEach(f => {
-            const d = document.createElement('div'); d.innerText = f.name; d.onclick = () => { /* Add logic for bulk assign here */ };
-            list.appendChild(d);
+            const d = document.createElement('div'); d.className = 'food-management-item';
+            d.innerHTML = `<div class="details"><div class="name">${f.name}</div><div class="category">${f.category} (${f.groceryCategory || 'N/A'})</div><div class="per-block">${f.perBlock}${f.unit} per block</div></div><button class="delete-btn" onclick="deleteFood('${f.id}')">Delete</button>`;
+            cont.appendChild(d);
         });
-        modal.style.display = 'flex';
+    }
+    function deleteFood(id) { if(confirm('Delete?')) { foodList = foodList.filter(f=>f.id!==id); renderFoodListManagement(); populateAllDropdowns(); calculate(); } }
+    function openAddFoodModal() { document.getElementById('modal-add-food').style.display = 'flex'; }
+    function closeAddFoodModal() { document.getElementById('modal-add-food').style.display = 'none'; }
+    function addNewFood() {
+        const n = document.getElementById('new-food-name').value; const c = document.getElementById('new-food-category').value; const g = document.getElementById('new-food-grocery-category').value; const p = parseFloat(document.getElementById('new-food-per-block').value); const u = document.getElementById('new-food-unit').value;
+        if(!n||isNaN(p)||!u) return;
+        foodList.push({id:`f${nextFoodId++}`,name:n,category:c,groceryCategory:g,perBlock:p,unit:u});
+        renderFoodListManagement(); populateAllDropdowns(); closeAddFoodModal();
+    }
+    function populateAllDropdowns() {
+        document.querySelectorAll('.food-select').forEach(s => {
+            const cur = s.value; const cat = s.closest('.food-item-row').dataset.cat;
+            s.innerHTML = '<option value="">Select...</option>';
+            const allowed = (cat === 'p') ? ['protein', 'combo'] : (cat === 'c') ? ['carb', 'combo'] : ['fat'];
+            foodList.filter(f => allowed.includes(f.category)).forEach(food => { s.add(new Option(food.name, JSON.stringify(food))); });
+            s.value = cur;
+        });
     }
 
+    function saveCurrentMeal(day, mealId) {
+        const row = document.querySelector(`#day-${day} [data-meal-id="${mealId}"]`);
+        const items = [];
+        row.querySelectorAll('.food-item-row').forEach(ir => {
+            const s = ir.querySelector('.food-select'); const p = ir.querySelector('.proportion-input');
+            if(s.value) items.push({ cat: ir.dataset.cat, foodJson: s.value, proportion: parseFloat(p.value) });
+        });
+        if(items.length === 0) return;
+        let n = prompt("Meal Name?"); if(!n) return;
+        savedMeals.push({ id: `sm${nextSavedMealId++}`, name: n, foodItems: items, mealType: mealId });
+        alert("Saved!");
+    }
+    function openSavedMeals() { renderSavedMealsList(); document.getElementById('modal-saved-meals').style.display = 'flex'; }
+    function renderSavedMealsList() {
+        const cont = document.getElementById('saved-meal-list'); cont.innerHTML = '';
+        const groups = { Breakfast:[], Snacks:[], Lunch:[], Dinner:[] };
+        savedMeals.forEach(m => {
+            const t = {brk:'Breakfast',sn1:'Snacks',sn2:'Snacks',lun:'Lunch',din:'Dinner'}[m.mealType];
+            groups[t].push(m);
+        });
+        for(let g in groups) {
+            if(groups[g].length === 0) continue;
+            cont.innerHTML += `<h4>${g}</h4>`;
+            const ul = document.createElement('ul');
+            groups[g].forEach(m => {
+                const li = document.createElement('li'); li.className='saved-meal-item';
+                li.innerHTML = `<div class="meal-name">${m.name}</div><div class="buttons"><button class="load-btn" onclick="openLoadSavedMealModal('${m.id}')">Load</button><button class="delete-btn" onclick="deleteSavedMeal('${m.id}')">Delete</button></div>`;
+                ul.appendChild(li);
+            });
+            cont.appendChild(ul);
+        }
+    }
+    function deleteSavedMeal(id) { savedMeals = savedMeals.filter(m=>m.id!==id); renderSavedMealsList(); }
+    function openLoadSavedMealModal(id) { selectedSavedMealForLoad = savedMeals.find(m=>m.id===id); document.getElementById('modal-load-saved-meal').style.display='flex'; }
+    function applySavedMeal() {
+        const ms = Array.from(document.querySelectorAll('#load-meals-assign input:checked')).map(i=>i.value);
+        const ds = Array.from(document.querySelectorAll('#load-days-assign input:checked')).map(i=>i.value);
+        ds.forEach(d => {
+            ms.forEach(m => {
+                const row = document.querySelector(`#day-${d} [data-meal-id="${m}"]`);
+                row.querySelectorAll('.food-items-container').forEach(c=>c.innerHTML='');
+                selectedSavedMealForLoad.foodItems.forEach(i => { addFoodItem(row.querySelector(`.${i.cat}-foods`), i.cat, i.foodJson, i.proportion, false); });
+            });
+        });
+        calculate(); closeModals();
+    }
+
+    function openCopyDayModal(d) { currentDayToCopy = d; document.getElementById('modal-copy-day').style.display='flex'; }
+    function executeCopyDay() {
+        const ts = Array.from(document.querySelectorAll('#copy-days-target input:checked')).map(i=>i.value);
+        const sourceData = [];
+        meals.forEach(m => {
+            const row = document.querySelector(`#day-${currentDayToCopy} [data-meal-id="${m.id}"]`);
+            const md = { id: m.id, m: row.querySelector('.in-m').value, d: row.querySelector('.in-d').value, items: [] };
+            row.querySelectorAll('.food-item-row').forEach(ir => { if(ir.querySelector('.food-select').value) md.items.push({ cat: ir.dataset.cat, json: ir.querySelector('.food-select').value, p: ir.querySelector('.proportion-input').value }); });
+            sourceData.push(md);
+        });
+        ts.forEach(t => {
+            sourceData.forEach(sd => {
+                const row = document.querySelector(`#day-${t} [data-meal-id="${sd.id}"]`);
+                row.querySelector('.in-m').value = sd.m; row.querySelector('.in-d').value = sd.d;
+                row.querySelectorAll('.food-items-container').forEach(c=>c.innerHTML='');
+                sd.items.forEach(i => addFoodItem(row.querySelector(`.${i.cat}-foods`), i.cat, i.json, i.p, false));
+            });
+        });
+        calculate(); closeModals();
+    }
+
+    function generateAndDisplayGroceryList() {
+        const list = new Map();
+        days.forEach(day => {
+            meals.forEach(m => {
+                const row = document.querySelector(`#day-${day} [data-meal-id="${m.id}"]`);
+                const tm = parseFloat(row.querySelector('.in-m').value); const td = parseFloat(row.querySelector('.in-d').value);
+                const mf = { protein: [], carb: [], fat: [], combo: [] };
+                row.querySelectorAll('.food-item-row').forEach(ir => {
+                    const s = ir.querySelector('.food-select'); const p = ir.querySelector('.proportion-input');
+                    if(s.value) { const f = JSON.parse(s.value); mf[f.category].push({ food: f, proportion: parseFloat(p.value) }); }
+                });
+                [calculatePersonMealBlocks(mf, tm), calculatePersonMealBlocks(mf, td)].forEach(res => {
+                    Object.values(res.distributedFoods).flat().forEach(i => {
+                        const ex = list.get(i.food.id); if(ex) ex.b += i.blocks; else list.set(i.food.id, { f: i.food, b: i.blocks });
+                    });
+                });
+            });
+        });
+        const out = document.getElementById('grocery-list-output'); out.innerHTML = '';
+        const cats = {};
+        list.forEach(v => { if(!cats[v.f.groceryCategory]) cats[v.f.groceryCategory] = []; cats[v.f.groceryCategory].push(v); });
+        for(let c in cats) {
+            out.innerHTML += `<h4>${c}</h4><ul>`;
+            cats[c].forEach(i => out.innerHTML += `<li>${(i.b * i.f.perBlock).toFixed(1)} ${i.f.unit} ${i.f.name}</li>`);
+            out.innerHTML += `</ul>`;
+        }
+        document.getElementById('modal-grocery-list').style.display='flex';
+    }
+
+    function openSettingsModal() {
+        document.getElementById('setting-mitch-total-daily-blocks').value = userSettings.mitchTotalDailyBlocks;
+        document.getElementById('setting-dee-total-daily-blocks').value = userSettings.deeTotalDailyBlocks;
+        const cont = document.getElementById('settings-meal-defaults'); cont.innerHTML = '';
+        userSettings.mealDefaultBlocks.forEach(m => {
+            cont.innerHTML += `<div class="settings-meal-row"><span>${m.name}</span><div>M: <input type="number" data-meal-id="${m.id}" data-person="mitch" value="${m.m}"> D: <input type="number" data-meal-id="${m.id}" data-person="dee" value="${m.d}"></div></div>`;
+        });
+        document.getElementById('modal-settings').style.display='flex';
+    }
+    function saveSettings() {
+        userSettings.mitchTotalDailyBlocks = parseFloat(document.getElementById('setting-mitch-total-daily-blocks').value);
+        userSettings.deeTotalDailyBlocks = parseFloat(document.getElementById('setting-dee-total-daily-blocks').value);
+        userSettings.mealDefaultBlocks.forEach(ms => {
+            ms.m = parseFloat(document.querySelector(`input[data-meal-id="${ms.id}"][data-person="mitch"]`).value);
+            ms.d = parseFloat(document.querySelector(`input[data-meal-id="${ms.id}"][data-person="dee"]`).value);
+        });
+        calculate(); updateRatiosDisplay(); closeModals();
+    }
+    function applySettingsToPlanner() {
+        days.forEach(d => { meals.forEach(m => {
+            const row = document.querySelector(`#day-${d} [data-meal-id="${m.id}"]`);
+            const def = userSettings.mealDefaultBlocks.find(i=>i.id===m.id);
+            row.querySelector('.in-m').value = def.m; row.querySelector('.in-d').value = def.d;
+        }); });
+        calculate(); closeModals();
+    }
+    function updateRatiosDisplay() { document.getElementById('ratios-display').innerText = `Mitch: ${userSettings.mitchTotalDailyBlocks} | Dee: ${userSettings.deeTotalDailyBlocks}`; }
+    function openFoodLibrary(cat) {
+        const list = document.getElementById('library-list'); document.getElementById('library-title').innerText = `Select ${cat.toUpperCase()}`; list.innerHTML = "";
+        const filter = (cat === 'protein' || cat === 'carb') ? [cat, 'combo'] : [cat];
+        foodList.filter(f => filter.includes(f.category)).forEach(food => {
+            const item = document.createElement('div'); item.className = 'food-list-item';
+            item.innerHTML = `<span>${food.name} (${food.category})</span> <span>${food.perBlock}${food.unit} (1 blk)</span>`;
+            item.onclick = () => { currentBulkFood = food; document.getElementById('modal-library').style.display='none'; document.getElementById('selected-food-name').innerText=food.name; document.getElementById('modal-assign').style.display='flex'; };
+            list.appendChild(item);
+        });
+        document.getElementById('modal-library').style.display = 'flex';
+    }
+    function executeBulkApply() {
+        const ms = Array.from(document.querySelectorAll('#assign-meals input:checked')).map(i=>i.value);
+        const ds = Array.from(document.querySelectorAll('#assign-days input:checked')).map(i=>i.value);
+        const targetCats = currentBulkFood.category === 'combo' ? ['p','c'] : [currentBulkFood.category[0]];
+        const p = parseFloat(document.getElementById('bulk-assign-proportion').value);
+        ds.forEach(d => { ms.forEach(m => { targetCats.forEach(c => {
+            const cont = document.querySelector(`#day-${d} [data-meal-id="${m}"] .food-area .${c}-foods`);
+            cont.innerHTML = ''; addFoodItem(cont, c, JSON.stringify(currentBulkFood), p, false);
+        }); }); });
+        calculate(); closeModals();
+    }
     function closeModals() { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); }
-    function openSummary() { document.getElementById('summary-overlay').style.display='flex'; calculate(); }
-    function closeSummary() { document.getElementById('summary-overlay').style.display='none'; }
-    // Add other UI helper functions as needed (Manage Foods, Settings, etc.)
 </script>
 </body>
 </html>
